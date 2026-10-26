@@ -1,0 +1,139 @@
+/* ============================================================
+   黑城残响 · 基础样式 (Reset / 排版 / 背景 / 滚动条)
+   ============================================================ */
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html {
+  font-size: 16px;
+  color-scheme: dark;
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  font-family: var(--font-body);
+  background: var(--ink-0);
+  color: var(--paper);
+  line-height: 1.65;
+  letter-spacing: 0.02em;
+  min-height: 100vh;
+  overflow: hidden;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+/* ---- 全局背景: 墨色底 + 雾气辉光 + 颗粒噪点 ---- */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -2;
+  background:
+    radial-gradient(52% 42% at 78% 8%, rgba(201, 162, 39, 0.07), transparent 62%),
+    radial-gradient(46% 40% at 8% 88%, rgba(178, 58, 52, 0.06), transparent 60%),
+    radial-gradient(60% 55% at 50% 115%, rgba(63, 143, 118, 0.05), transparent 65%),
+    linear-gradient(168deg, #0d0c12 0%, #0a090d 55%, #0c0a10 100%);
+  pointer-events: none;
+}
+
+body::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  opacity: 0.05;
+  pointer-events: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)' opacity='0.6'/%3E%3C/svg%3E");
+  mix-blend-mode: overlay;
+}
+
+/* ---- 排版 ---- */
+h1, h2, h3, h4 {
+  font-family: var(--font-display);
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  line-height: 1.35;
+  color: var(--paper);
+}
+
+.serif { font-family: var(--font-display); }
+
+.num {
+  font-family: var(--font-display);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.02em;
+}
+
+.text-dim { color: var(--paper-dim); }
+.text-faint { color: var(--paper-faint); }
+.text-gold { color: var(--gold-bright); }
+.text-crimson { color: var(--crimson-bright); }
+.text-jade { color: var(--jade-bright); }
+
+/* 章节装饰标题 */
+.section-title {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.32em;
+  color: var(--paper-dim);
+  text-transform: uppercase;
+  margin-bottom: var(--sp-3);
+}
+.section-title::before,
+.section-title::after {
+  content: "";
+  height: 1px;
+  flex: 1;
+  background: linear-gradient(90deg, transparent, var(--gold-line), transparent);
+}
+.section-title .orn { color: var(--gold); }
+
+/* 金线分隔 */
+.hairline {
+  height: 1px;
+  border: 0;
+  background: linear-gradient(90deg, transparent, var(--gold-line) 18%, var(--gold-line) 82%, transparent);
+  margin: var(--sp-4) 0;
+}
+
+/* ---- 滚动条 ---- */
+* { scrollbar-width: thin; scrollbar-color: var(--gold-dim) transparent; }
+*::-webkit-scrollbar { width: 7px; height: 7px; }
+*::-webkit-scrollbar-track { background: transparent; }
+*::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, var(--gold-dim), #3a3320);
+  border-radius: var(--r-full);
+  border: 1px solid rgba(0,0,0,0.4);
+}
+*::-webkit-scrollbar-thumb:hover { background: var(--gold-soft); }
+
+/* ---- 链接与选中 ---- */
+a { color: var(--gold-bright); text-decoration: none; }
+::selection { background: rgba(201, 162, 39, 0.3); color: #fff; }
+
+/* ---- 可访问性: 焦点 ---- */
+:focus-visible {
+  outline: 2px solid var(--gold-bright);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* ---- 动效偏好 ---- */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* ---- 工具类 ---- */
+.hidden { display: none !important; }
+.visually-hidden {
+  position: absolute; width: 1px; height: 1px;
+  overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap;
+}
+.no-select { user-select: none; }

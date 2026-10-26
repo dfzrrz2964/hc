@@ -1,0 +1,124 @@
+/* ============================================================
+   黑城残响 · 设计令牌 (Design Tokens)
+   主题: 墨玉 (默认) | 赤焰 | 青瓷 — 通过 html[data-theme] 切换
+   ============================================================ */
+
+:root {
+  /* ---- 色彩: 墨玉主题 ---- */
+  --ink-0: #0a090d;
+  --ink-1: #0f0e14;
+  --ink-2: #15141c;
+  --ink-3: #1d1b25;
+  --ink-4: #262330;
+  --ink-5: #322e3e;
+
+  --paper: #e7ddc6;
+  --paper-dim: #a99e87;
+  --paper-faint: #6f6757;
+  --paper-ghost: #453f35;
+
+  --gold: #c9a227;
+  --gold-bright: #ecd174;
+  --gold-soft: #a8842a;
+  --gold-dim: #6f5a1e;
+  --gold-line: rgba(201, 162, 39, 0.22);
+
+  --crimson: #b23a34;
+  --crimson-bright: #e25a4c;
+  --crimson-deep: #7c2320;
+  --jade: #3f8f76;
+  --jade-bright: #5cbfa0;
+  --azure: #5b7fb4;
+  --azure-bright: #7fa3d6;
+  --violet: #7d6bb0;
+  --violet-bright: #a48fd6;
+
+  --ok: #4fae6a;
+  --warn: #d9a441;
+  --err: #d6455f;
+
+  /* 品质色: 白普通 < 绿优良 < 蓝精良 < 紫传说 < 金史诗 < 红神话 < 黑诅咒 */
+  --q-broken: #7a7a80;
+  --q-common: #b9b6ac;
+  --q-fine: #4fae6a;
+  --q-rare: #4f8fd0;
+  --q-legend: #9a6fd0;
+  --q-epic: #d9a441;
+  --q-myth: #d6455f;
+  --q-cursed: #1b1b22;
+
+  /* ---- 字体 ---- */
+  --font-display: "Noto Serif SC", "Source Han Serif SC", "Songti SC", "STSong", "SimSun", serif;
+  --font-body: "Noto Sans SC", "PingFang SC", "Microsoft YaHei", "Segoe UI", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", "Cascadia Mono", "SFMono-Regular", Consolas, monospace;
+
+  /* ---- 间距 ---- */
+  --sp-1: 4px;
+  --sp-2: 8px;
+  --sp-3: 12px;
+  --sp-4: 16px;
+  --sp-5: 20px;
+  --sp-6: 24px;
+  --sp-7: 32px;
+  --sp-8: 40px;
+  --sp-9: 56px;
+
+  /* ---- 圆角 ---- */
+  --r-sm: 6px;
+  --r-md: 10px;
+  --r-lg: 16px;
+  --r-xl: 22px;
+  --r-full: 999px;
+
+  /* ---- 阴影 ---- */
+  --sh-1: 0 1px 3px rgba(0, 0, 0, 0.45);
+  --sh-2: 0 4px 14px rgba(0, 0, 0, 0.5);
+  --sh-3: 0 10px 32px rgba(0, 0, 0, 0.6);
+  --sh-4: 0 24px 64px rgba(0, 0, 0, 0.72);
+  --sh-gold: 0 0 0 1px rgba(201, 162, 39, 0.28), 0 8px 30px rgba(201, 162, 39, 0.12);
+  --sh-glow-gold: 0 0 18px rgba(201, 162, 39, 0.35);
+  --sh-glow-crimson: 0 0 18px rgba(178, 58, 52, 0.4);
+
+  /* ---- 动效 ---- */
+  --t-fast: 0.16s;
+  --t-med: 0.3s;
+  --t-slow: 0.55s;
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --ease-inout: cubic-bezier(0.65, 0, 0.35, 1);
+
+  /* ---- 面板 ---- */
+  --panel-bg: linear-gradient(160deg, rgba(28, 26, 36, 0.86), rgba(15, 14, 20, 0.9));
+  --panel-border: 1px solid rgba(201, 162, 39, 0.16);
+  --panel-blur: blur(14px) saturate(1.15);
+
+  /* ---- 布局 ---- */
+  --topbar-h: 58px;
+  --side-w: 300px;   /* 左右栏同宽 (对称双栏) */
+}
+
+/* 赤焰主题 */
+html[data-theme="crimson"] {
+  --gold: #d9553f;
+  --gold-bright: #f08a6a;
+  --gold-soft: #a83a28;
+  --gold-dim: #5e2418;
+  --gold-line: rgba(217, 85, 63, 0.24);
+  --panel-border: 1px solid rgba(217, 85, 63, 0.18);
+  --sh-glow-gold: 0 0 18px rgba(217, 85, 63, 0.4);
+  --sh-gold: 0 0 0 1px rgba(217, 85, 63, 0.3), 0 8px 30px rgba(217, 85, 63, 0.14);
+}
+
+/* 青瓷主题 */
+html[data-theme="jade"] {
+  --gold: #3f9b84;
+  --gold-bright: #74c9b2;
+  --gold-soft: #2e7764;
+  --gold-dim: #1d4d41;
+  --gold-line: rgba(63, 155, 132, 0.24);
+  --panel-border: 1px solid rgba(63, 155, 132, 0.2);
+  --sh-glow-gold: 0 0 18px rgba(63, 155, 132, 0.42);
+  --sh-gold: 0 0 0 1px rgba(63, 155, 132, 0.32), 0 8px 30px rgba(63, 155, 132, 0.16);
+}
+
+/* 品质色在各主题保持一致 */

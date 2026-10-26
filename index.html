@@ -1,0 +1,887 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="ink">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="description" content="黑城残响 · 基于 LLM 交互协议的暗黑幻想模拟经营 RPG 前端原型">
+<title>黑城残响 · BLACK CITY ECHO</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;600;700;900&family=Noto+Sans+SC:wght@300;400;500;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/tokens.css">
+<link rel="stylesheet" href="css/base.css">
+<link rel="stylesheet" href="css/layout.css">
+<link rel="stylesheet" href="css/components.css">
+<link rel="stylesheet" href="css/game.css">
+</head>
+<body>
+
+<!-- ============ 开始游戏 · 标题画面 ============ -->
+<div class="title-screen is-visible" id="titleScreen" role="dialog" aria-modal="true" aria-labelledby="titleScreenTitle">
+  <div class="ts-bg" aria-hidden="true">
+    <div class="ts-veil"></div>
+    <div class="ts-halo"></div>
+  </div>
+  <div class="ts-inner">
+    <div class="ts-seal" data-icon="seal" aria-hidden="true"></div>
+    <div class="ts-kicker">第十七纪元 · 残响纪元</div>
+    <h1 class="ts-title" id="titleScreenTitle">黑城残响</h1>
+    <div class="ts-sub">BLACK CITY ECHO</div>
+    <p class="ts-poem">「残响之下，万朝同夜。<br>铜牌在怀，命途未卜。」</p>
+    <div class="ts-actions">
+      <button class="btn btn-primary ts-btn ts-btn-main" id="btnTitleNew"><span data-icon="link"></span>开始游戏</button>
+      <button class="btn btn-ghost ts-btn" id="btnTitleContinue"><span data-icon="folder-open"></span>继续游戏<span class="ts-cont-count" id="tsContinueCount"></span></button>
+    </div>
+    <div class="ts-foot">
+      <span class="ts-ver">v0.9 · 本地离线可玩</span>
+      <button class="icon-btn" id="btnTitleSettings" data-tip="设置" aria-label="设置"><span data-icon="settings"></span></button>
+    </div>
+  </div>
+</div>
+
+<div class="app-shell" id="appShell">
+
+  <!-- ============ 顶部栏 ============ -->
+  <header class="topbar" id="topbar">
+    <div class="topbar-brand">
+      <span class="brand-seal" data-icon="seal" aria-hidden="true"></span>
+      <div>
+        <div class="brand-name">黑城残响</div>
+        <div class="brand-sub">BLACK CITY ECHO · PROTOCOL α</div>
+      </div>
+    </div>
+
+    <div class="topbar-center" id="topbarCenter">
+      <span class="topbar-chip" id="chipClock" title="游戏内时间"><span class="chip-icon" data-icon="clock"></span><span class="chip-val" id="chipClockVal">第1年 一月 一日</span></span>
+      <span class="topbar-chip" id="chipTime" title="时辰"><span class="chip-icon" data-icon="sunset"></span><span class="chip-val" id="chipTimeVal">酉时</span></span>
+      <span class="topbar-chip is-live" id="chipLocation" title="当前地点"><span class="chip-icon" data-icon="map-pin"></span><span class="chip-val" id="chipLocationVal">废都长安</span></span>
+      <span class="topbar-chip" id="chipWeather" title="天气"><span class="chip-icon" data-icon="cloud-fog"></span><span class="chip-val" id="chipWeatherVal">阴云</span></span>
+    </div>
+
+    <div class="topbar-actions">
+      <button class="icon-btn" id="btnSideStatus" data-overlay="left" data-tip="状态" aria-label="角色状态" style="display:none"><span data-icon="user"></span></button>
+      <button class="icon-btn" id="btnSideInfo" data-tip="情报" aria-label="情报面板" style="display:none"><span data-icon="list"></span></button>
+      <button class="icon-btn" id="btnChronicle" data-tip="编年史" aria-label="阅读编年史"><span data-icon="book-open"></span><span class="dot hidden" id="chronicleDot"></span></button>
+      <button class="icon-btn" id="btnLorebook" data-tip="世界书" aria-label="世界书管理"><span data-icon="scroll"></span></button>
+      <button class="icon-btn" id="btnPreset" data-tip="预设" aria-label="预设管理"><span data-icon="dice"></span></button>
+      <button class="icon-btn" id="btnFullscreen" data-tip="全屏" aria-label="切换全屏"><span data-icon="maximize"></span></button>
+    </div>
+    <input type="file" id="fileLorebook" accept=".json,application/json" hidden>
+  </header>
+
+  <!-- ============ 左栏: 状态 ============ -->
+  <aside class="left-col" id="leftCol" aria-label="角色状态栏">
+
+    <section class="panel-card identity-card" id="identityCard" aria-label="角色身份">
+      <span class="corner tl"></span><span class="corner tr"></span><span class="corner bl"></span><span class="corner br"></span>
+      <div class="identity-top">
+        <div class="avatar" id="avatarBox"><span data-icon="user" id="avatarIcon"></span><span class="level-seal" id="levelSeal">1</span></div>
+        <div class="identity-meta">
+          <div class="id-class" id="idClass">主职业: 无</div>
+          <div class="id-name" id="idName">无名旅者</div>
+          <div class="id-ranks">
+            <span class="chip azure" id="chipRankTitle" title="位阶">位阶: 猎奴</span>
+            <span class="chip" id="chipRank" title="战力评价">战力: 垃圾</span>
+            <span class="chip gold" id="chipPower" title="等级">等级: 0</span>
+          </div>
+          <div class="id-sub" id="idSub" title="副职业">副职业: 无</div>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel-card vitals" aria-label="生命与气力">
+      <span class="corner tl"></span><span class="corner tr"></span><span class="corner bl"></span><span class="corner br"></span>
+      <div class="bar-row">
+        <div class="bar-head"><span>生命</span><span class="val num"><span id="hpVal">85</span><span class="mx"> / <span id="hpMax">85</span></span></span></div>
+        <div class="bar hp" id="barHP"><div class="fill" id="barHPFill" style="width:100%"></div></div>
+      </div>
+      <div class="bar-row">
+        <div class="bar-head"><span>气力</span><span class="val num"><span id="staminaVal">60</span><span class="mx"> / <span id="staminaMax">60</span></span></span></div>
+        <div class="bar stamina" id="barStamina"><div class="fill" id="barStaminaFill" style="width:100%"></div></div>
+      </div>
+      <div class="bar-row">
+        <div class="bar-head"><span>经验</span><span class="val num"><span id="expVal">0</span><span class="mx"> / <span id="expMax">100</span></span></span></div>
+        <div class="bar exp" id="barExp"><div class="fill" id="barExpFill" style="width:0%"></div></div>
+      </div>
+      <div class="money-row" id="moneyRow" title="货币">
+        <span class="money-label">货币</span>
+        <span class="money-val num" id="moneyVal">10 铜板</span>
+      </div>
+    </section>
+
+    <section class="panel-card" aria-label="属性">
+      <span class="corner tl"></span><span class="corner tr"></span><span class="corner bl"></span><span class="corner br"></span>
+      <div class="section-title"><span class="orn" data-icon="scale"></span>属性</div>
+      <div class="attr-grid" id="attrGrid"></div>
+      <div class="free-pts" id="freePts" style="margin-top:10px">
+        <span class="fp-label">自由属性点</span>
+        <span class="fp-val num" id="freePtsVal">5</span>
+      </div>
+    </section>
+
+    <section class="panel-card" aria-label="背包">
+      <span class="corner tl"></span><span class="corner tr"></span><span class="corner bl"></span><span class="corner br"></span>
+      <div class="section-title"><span class="orn" data-icon="backpack"></span>背包 <span class="text-faint" style="font-size:10px; letter-spacing:.1em" id="invCount">0/20</span></div>
+      <div class="inv-summary">
+        <div class="inv-grid" id="invGrid"></div>
+        <button class="btn btn-ghost btn-sm btn-block" id="btnOpenInventory">打开背包</button>
+      </div>
+    </section>
+
+  </aside>
+
+  <!-- ============ 中栏: 剧情 ============ -->
+  <main class="center-col" id="centerCol" aria-label="剧情面板">
+    <div class="story-wrap" id="storyWrap">
+      <div class="story-scroll" id="storyScroll" aria-live="polite"></div>
+    </div>
+    <div class="protocol-strip" id="protocolStrip" style="margin:0 auto; width:min(100% - 48px, 1080px); display:none">
+      <span data-icon="pulse"></span><span>协议引擎</span><span id="protocolText" style="flex:1; text-align:right"></span>
+    </div>
+    <div class="input-dock" id="inputDock">
+      <div class="dock-inner">
+        <div class="dock-row">
+          <textarea class="dock-input" id="dockInput" rows="1" placeholder="输入自定义指令…" aria-label="输入自定义指令"></textarea>
+          <div class="dock-tools">
+            <button class="icon-btn" id="btnStop" data-tip="停止生成" aria-label="停止生成" style="display:none"><span data-icon="stop"></span></button>
+            <span class="sep"></span>
+          </div>
+          <button class="dock-send" id="btnSend" aria-label="发送"><span data-icon="send"></span></button>
+        </div>
+        <div class="dock-hint"><span class="kbd">Enter</span> 发送 · <span class="kbd">Shift+Enter</span> 换行 · <span class="kbd">Esc</span> 关闭面板</div>
+      </div>
+    </div>
+  </main>
+
+  <!-- ============ 右栏: 情报面板 (与左栏对称 · 大号入口磁贴, 点击弹窗) ============ -->
+  <aside class="right-col" id="rightCol" aria-label="情报面板">
+
+    <div class="rc-group">世界情报</div>
+
+    <!-- 九州舆图 (与其他磁贴同款, 点击弹地图) -->
+    <section class="panel-card rc-entry" data-modal="modalPanelMap">
+      <span class="corner tl"></span><span class="corner tr"></span><span class="corner bl"></span><span class="corner br"></span>
+      <span class="re-icon" data-icon="map"></span>
+      <span class="re-main"><span class="re-title">九州舆图</span><span class="re-sub">当前位置 · <span id="locName">废都长安</span></span></span>
+      <span class="re-arrow" data-icon="chevron"></span>
+    </section>
+
+    <section class="panel-card rc-entry" data-modal="modalPanelNpc">
+      <span class="corner tl"></span><span class="corner tr"></span><span class="corner bl"></span><span class="corner br"></span>
+      <span class="re-icon" data-icon="users"></span>
+      <span class="re-main"><span class="re-title">周围人物</span><span class="re-sub">城中可交互的角色档案</span></span>
+      <em class="re-badge hidden" id="tnpcBadge"></em>
+      <span class="re-arrow" data-icon="chevron"></span>
+    </section>
+
+    <section class="panel-card rc-entry" data-modal="modalPanelGear">
+      <span class="corner tl"></span><span class="corner tr"></span><span class="corner bl"></span><span class="corner br"></span>
+      <span class="re-icon" data-icon="shield"></span>
+      <span class="re-main"><span class="re-title">装备栏</span><span class="re-sub">十二槽位 · 背包物品</span></span>
+      <span class="re-arrow" data-icon="chevron"></span>
+    </section>
+
+    <section class="panel-card rc-entry" data-modal="modalPanelSkill">
+      <span class="corner tl"></span><span class="corner tr"></span><span class="corner bl"></span><span class="corner br"></span>
+      <span class="re-icon" data-icon="zap"></span>
+      <span class="re-main"><span class="re-title">职业技能</span><span class="re-sub">已习得与待解锁的技艺</span></span>
+      <span class="re-arrow" data-icon="chevron"></span>
+    </section>
+
+    <section class="panel-card rc-entry" data-modal="modalPanelAura">
+      <span class="corner tl"></span><span class="corner tr"></span><span class="corner bl"></span><span class="corner br"></span>
+      <span class="re-icon" data-icon="sparkles"></span>
+      <span class="re-main"><span class="re-title">光环状态</span><span class="re-sub">常驻与潜伏中的光环</span></span>
+      <span class="re-arrow" data-icon="chevron"></span>
+    </section>
+
+    <section class="panel-card rc-entry" data-modal="modalPanelQuest">
+      <span class="corner tl"></span><span class="corner tr"></span><span class="corner bl"></span><span class="corner br"></span>
+      <span class="re-icon" data-icon="target"></span>
+      <span class="re-main"><span class="re-title">任务卷轴</span><span class="re-sub">主线 · 支线 · 隐藏</span></span>
+      <em class="re-badge hidden" id="tquestBadge"></em>
+      <span class="re-arrow" data-icon="chevron"></span>
+    </section>
+
+    <section class="panel-card rc-entry" data-modal="modalPanelTalent">
+      <span class="corner tl"></span><span class="corner tr"></span><span class="corner bl"></span><span class="corner br"></span>
+      <span class="re-icon" data-icon="hexagon"></span>
+      <span class="re-main"><span class="re-title">天赋脉络</span><span class="re-sub">觉醒与待觉醒的天赋</span></span>
+      <span class="re-arrow" data-icon="chevron"></span>
+    </section>
+
+    <section class="panel-card rc-entry" data-modal="modalPanelFaction">
+      <span class="corner tl"></span><span class="corner tr"></span><span class="corner bl"></span><span class="corner br"></span>
+      <span class="re-icon" data-icon="flag"></span>
+      <span class="re-main"><span class="re-title">阵营势力</span><span class="re-sub">归属 · 声望 · 势力关系</span></span>
+      <span class="re-arrow" data-icon="chevron"></span>
+    </section>
+
+    <div class="rc-group">系统</div>
+
+    <section class="panel-card rc-entry" data-modal="modalLoad">
+      <span class="corner tl"></span><span class="corner tr"></span><span class="corner bl"></span><span class="corner br"></span>
+      <span class="re-icon" data-icon="save"></span>
+      <span class="re-main"><span class="re-title">立即存档</span><span class="re-sub">存档 · 读档 · 返回主菜单</span></span>
+      <span class="re-arrow" data-icon="chevron"></span>
+    </section>
+
+    <section class="panel-card rc-entry" data-modal="modalMemory">
+      <span class="corner tl"></span><span class="corner tr"></span><span class="corner bl"></span><span class="corner br"></span>
+      <span class="re-icon" data-icon="brain"></span>
+      <span class="re-main"><span class="re-title">记忆分层</span><span class="re-sub">分段总结 · 总结编辑</span></span>
+      <span class="re-arrow" data-icon="chevron"></span>
+    </section>
+
+    <section class="panel-card rc-entry" data-modal="modalWorldSnap">
+      <span class="corner tl"></span><span class="corner tr"></span><span class="corner bl"></span><span class="corner br"></span>
+      <span class="re-icon" data-icon="history"></span>
+      <span class="re-main"><span class="re-title">世界快照</span><span class="re-sub">每回合自动打点 · 退档</span></span>
+      <span class="re-arrow" data-icon="chevron"></span>
+    </section>
+
+    <section class="panel-card rc-entry" data-modal="modalSettings">
+      <span class="corner tl"></span><span class="corner tr"></span><span class="corner bl"></span><span class="corner br"></span>
+      <span class="re-icon" data-icon="settings"></span>
+      <span class="re-main"><span class="re-title">设置</span><span class="re-sub">主题 · 体验 · AI 接口</span></span>
+      <span class="re-arrow" data-icon="chevron"></span>
+    </section>
+
+  </aside>
+
+</div>
+
+<!-- ============ 弹窗: 地图 (右栏「打开九州舆图」按钮) ============ -->
+<div class="modal-layer" id="modalPanelMap" role="dialog" aria-modal="true" aria-labelledby="panelMapTitle">
+  <div class="modal-backdrop" data-close-modal="modalPanelMap"></div>
+  <div class="modal modal-panel-map">
+    <div class="modal-head">
+      <span class="mh-icon" data-icon="map"></span>
+      <div style="flex:1"><h3 id="panelMapTitle">九州舆图</h3><div class="sub">第十七纪元 · 点击城市圆点查看区域情报</div></div>
+      <button class="icon-btn" data-close-modal="modalPanelMap" aria-label="关闭"><span data-icon="x"></span></button>
+    </div>
+    <div class="modal-body" style="display:flex; flex-direction:column; gap:12px">
+      <div class="map-card">
+        <div class="map-title"><span>华夏舆图</span><span style="font-size:9px; letter-spacing:.18em; color:var(--paper-faint)">第十七纪元</span></div>
+        <div class="map-canvas-wrap">
+          <div class="map-canvas" id="mapCanvas"></div>
+          <div class="map-zoom" aria-label="地图缩放">
+            <button class="icon-btn" id="map-zoom-in" data-tip="放大" aria-label="放大"><span data-icon="plus"></span></button>
+            <button class="icon-btn" id="map-zoom-out" data-tip="缩小" aria-label="缩小"><span data-icon="minus"></span></button>
+            <button class="icon-btn" id="map-zoom-reset" data-tip="复位" aria-label="复位"><span data-icon="maximize"></span></button>
+          </div>
+        </div>
+        <div class="map-legend">
+          <span class="lg"><i style="background:var(--gold-bright)"></i>当前位置</span>
+          <span class="lg"><i style="background:var(--paper-faint)"></i>省会城市（可点击）</span>
+        </div>
+      </div>
+      <div class="panel-card" id="mapInfoCard">
+        <div class="section-title"><span class="orn" data-icon="info"></span>区域情报</div>
+        <div id="mapInfoBody" style="font-size:12px; line-height:1.8; color:var(--paper-dim)">选择地图上的城市以查看情报。</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ 弹窗: 人物 (右栏「周围人物」磁贴) ============ -->
+<div class="modal-layer" id="modalPanelNpc" role="dialog" aria-modal="true" aria-labelledby="panelNpcTitle">
+  <div class="modal-backdrop" data-close-modal="modalPanelNpc"></div>
+  <div class="modal modal-panel">
+    <div class="modal-head">
+      <span class="mh-icon" data-icon="users"></span>
+      <div style="flex:1"><h3 id="panelNpcTitle">周围人物</h3><div class="sub">城中有名有姓的角色 · 点击展开人物档案</div></div>
+      <button class="icon-btn" data-close-modal="modalPanelNpc" aria-label="关闭"><span data-icon="x"></span></button>
+    </div>
+    <div class="modal-body">
+      <div class="npc-list" id="npcList" style="display:flex; flex-direction:column; gap:8px"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ 弹窗: 装备 (右栏「装备栏」磁贴) ============ -->
+<div class="modal-layer" id="modalPanelGear" role="dialog" aria-modal="true" aria-labelledby="panelGearTitle">
+  <div class="modal-backdrop" data-close-modal="modalPanelGear"></div>
+  <div class="modal modal-panel">
+    <div class="modal-head">
+      <span class="mh-icon" data-icon="shield"></span>
+      <div style="flex:1"><h3 id="panelGearTitle">装备栏</h3><div class="sub">十二槽位（武器 / 防具 / 其他）· 点击穿卸</div></div>
+      <button class="icon-btn" data-close-modal="modalPanelGear" aria-label="关闭"><span data-icon="x"></span></button>
+    </div>
+    <div class="modal-body" style="display:flex; flex-direction:column; gap:12px">
+      <div class="gear-grid" id="gearGrid"></div>
+      <div>
+        <div class="section-title"><span class="orn" data-icon="gem"></span>背包物品</div>
+        <div class="inv-grid" id="gearInvGrid" style="grid-template-columns:repeat(6,1fr); margin-top:8px"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ 弹窗: 技能 (右栏「职业技能」磁贴) ============ -->
+<div class="modal-layer" id="modalPanelSkill" role="dialog" aria-modal="true" aria-labelledby="panelSkillTitle">
+  <div class="modal-backdrop" data-close-modal="modalPanelSkill"></div>
+  <div class="modal modal-panel">
+    <div class="modal-head">
+      <span class="mh-icon" data-icon="zap"></span>
+      <div style="flex:1"><h3 id="panelSkillTitle">职业技能</h3><div class="sub">已习得与待解锁的技艺</div></div>
+      <button class="icon-btn" data-close-modal="modalPanelSkill" aria-label="关闭"><span data-icon="x"></span></button>
+    </div>
+    <div class="modal-body">
+      <div class="skill-list" id="skillList" style="display:flex; flex-direction:column; gap:8px"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ 弹窗: 光环 (右栏「光环状态」磁贴) ============ -->
+<div class="modal-layer" id="modalPanelAura" role="dialog" aria-modal="true" aria-labelledby="panelAuraTitle">
+  <div class="modal-backdrop" data-close-modal="modalPanelAura"></div>
+  <div class="modal modal-panel">
+    <div class="modal-head">
+      <span class="mh-icon" data-icon="sparkles"></span>
+      <div style="flex:1"><h3 id="panelAuraTitle">光环状态</h3><div class="sub">常驻与潜伏中的光环效果</div></div>
+      <button class="icon-btn" data-close-modal="modalPanelAura" aria-label="关闭"><span data-icon="x"></span></button>
+    </div>
+    <div class="modal-body">
+      <div class="aura-list" id="auraList" style="display:flex; flex-direction:column; gap:8px"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ 弹窗: 任务 (右栏「任务卷轴」磁贴) ============ -->
+<div class="modal-layer" id="modalPanelQuest" role="dialog" aria-modal="true" aria-labelledby="panelQuestTitle">
+  <div class="modal-backdrop" data-close-modal="modalPanelQuest"></div>
+  <div class="modal modal-panel">
+    <div class="modal-head">
+      <span class="mh-icon" data-icon="target"></span>
+      <div style="flex:1"><h3 id="panelQuestTitle">任务卷轴</h3><div class="sub">主线 · 支线 · 隐藏</div></div>
+      <button class="icon-btn" data-close-modal="modalPanelQuest" aria-label="关闭"><span data-icon="x"></span></button>
+    </div>
+    <div class="modal-body">
+      <div class="quest-list" id="questList" style="display:flex; flex-direction:column; gap:8px"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ 弹窗: 天赋 (右栏「天赋脉络」磁贴) ============ -->
+<div class="modal-layer" id="modalPanelTalent" role="dialog" aria-modal="true" aria-labelledby="panelTalentTitle">
+  <div class="modal-backdrop" data-close-modal="modalPanelTalent"></div>
+  <div class="modal modal-panel">
+    <div class="modal-head">
+      <span class="mh-icon" data-icon="hexagon"></span>
+      <div style="flex:1"><h3 id="panelTalentTitle">天赋脉络</h3><div class="sub">觉醒与待觉醒的天赋</div></div>
+      <button class="icon-btn" data-close-modal="modalPanelTalent" aria-label="关闭"><span data-icon="x"></span></button>
+    </div>
+    <div class="modal-body">
+      <div class="talent-list" id="talentList" style="display:flex; flex-direction:column; gap:8px"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ 弹窗: 阵营 (右栏「阵营势力」磁贴) ============ -->
+<div class="modal-layer" id="modalPanelFaction" role="dialog" aria-modal="true" aria-labelledby="panelFactionTitle">
+  <div class="modal-backdrop" data-close-modal="modalPanelFaction"></div>
+  <div class="modal modal-panel">
+    <div class="modal-head">
+      <span class="mh-icon" data-icon="flag"></span>
+      <div style="flex:1"><h3 id="panelFactionTitle">阵营势力</h3><div class="sub">归属 · 声望 · 黑城势力关系</div></div>
+      <button class="icon-btn" data-close-modal="modalPanelFaction" aria-label="关闭"><span data-icon="x"></span></button>
+    </div>
+    <div class="modal-body" style="display:flex; flex-direction:column; gap:12px">
+      <div class="faction-hero" id="factionHero"></div>
+      <div class="panel-card">
+        <div class="section-title"><span class="orn" data-icon="flag"></span>黑城势力关系</div>
+        <div id="factionRelations"></div>
+        <button class="btn btn-ghost btn-sm btn-block" id="btnOpenPower" style="margin-top:10px"><span data-icon="crown"></span>查看 17+1 战力榜</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ 移动端侧栏覆盖层 ============ -->
+<div class="side-overlay left" id="leftOverlay">
+  <div class="backdrop" data-close-overlay="left"></div>
+  <div class="panel" id="leftOverlayPanel"></div>
+</div>
+
+<!-- ============ 模态: 角色创建向导 ============ -->
+<div class="modal-layer" id="modalCreate" role="dialog" aria-modal="true" aria-labelledby="createTitle">
+  <div class="modal-backdrop" data-close-modal="modalCreate"></div>
+  <div class="modal wizard" id="createModal">
+    <div class="modal-head">
+      <span class="mh-icon" data-icon="link"></span>
+      <div style="flex:1">
+        <h3 id="createTitle">神经链接 · 角色创建</h3>
+        <div class="sub" id="createSub">第 1 / 5 步 · 选择降临难度</div>
+      </div>
+      <button class="icon-btn" id="btnCreateClose" aria-label="关闭"><span data-icon="x"></span></button>
+    </div>
+    <div class="wizard-steps" id="wizardSteps">
+      <div class="wstep is-active" data-step="0"><span class="ws-idx">1</span><span class="ws-label">难度</span><span class="ws-line"></span></div>
+      <div class="wstep" data-step="1"><span class="ws-idx">2</span><span class="ws-label">身份</span><span class="ws-line"></span></div>
+      <div class="wstep" data-step="2"><span class="ws-idx">3</span><span class="ws-label">天赋</span><span class="ws-line"></span></div>
+      <div class="wstep" data-step="3"><span class="ws-idx">4</span><span class="ws-label">降临</span><span class="ws-line"></span></div>
+      <div class="wstep" data-step="4"><span class="ws-idx">5</span><span class="ws-label">链接</span></div>
+    </div>
+    <div class="wizard-body" id="wizardBody">
+      <!-- 步骤1 难度 -->
+      <div class="wstep-pane is-active" id="wpane-0">
+        <div class="section-title"><span class="orn" data-icon="skull"></span>选择降临难度</div>
+        <p class="text-dim" style="font-size:12px; margin-bottom:14px; line-height:1.8">难度决定初始自由属性点的多寡，也将永久烙印于你的命格之中。</p>
+        <div class="diff-grid" id="diffGrid"></div>
+      </div>
+      <!-- 步骤2 身份 -->
+      <div class="wstep-pane" id="wpane-1">
+        <div class="section-title"><span class="orn" data-icon="users"></span>选择三身份体系</div>
+        <p class="text-dim" style="font-size:12px; margin-bottom:14px; line-height:1.8">幸存者于废墟求生，黑城卫身负铁律，异种则已非人——每一重身份都改写命运的算法。</p>
+        <div class="identity-grid" id="identityGrid"></div>
+        <div class="wiz-name-row">
+          <div class="wn-field wn-name">
+            <label class="wn-label" for="wizName">角色之名</label>
+            <input type="text" id="wizName" class="input wn-input" maxlength="12" placeholder="无名旅者" autocomplete="off" spellcheck="false">
+          </div>
+          <div class="wn-field wn-age">
+            <label class="wn-label" for="wizAge">年龄</label>
+            <input type="text" id="wizAge" class="input wn-input" maxlength="3" placeholder="?" inputmode="numeric" autocomplete="off" spellcheck="false">
+          </div>
+          <div class="wn-field wn-gender">
+            <label class="wn-label" for="wizGender">性别</label>
+            <select id="wizGender" class="input wn-input">
+              <option value="?">未知</option>
+              <option value="男">男</option>
+              <option value="女">女</option>
+            </select>
+          </div>
+          <span class="wn-hint">将显示于状态栏与协议正文 · 名字留空则沿用「无名旅者」</span>
+        </div>
+      </div>
+      <!-- 步骤3 属性/天赋 -->
+      <div class="wstep-pane" id="wpane-2">
+        <div class="section-title"><span class="orn" data-icon="scale"></span>分配属性 · 天赋觉醒</div>
+        <p class="text-dim" style="font-size:12px; margin-bottom:14px; line-height:1.8">可用自由属性点：<b class="text-gold num" id="wizFreePts">0</b>（来自难度）。点击属性格分配，选择一项天赋。</p>
+        <div class="attr-grid" id="wizAttrGrid" style="margin-bottom:16px"></div>
+        <div class="section-title"><span class="orn" data-icon="hexagon"></span>天赋</div>
+        <div class="talent-grid" id="wizTalentGrid"></div>
+      </div>
+      <!-- 步骤4 降临地 -->
+      <div class="wstep-pane" id="wpane-3">
+        <div class="section-title"><span class="orn" data-icon="map-pin"></span>选择降临地</div>
+        <p class="text-dim" style="font-size:12px; margin-bottom:14px; line-height:1.8">你将于此睁开第一只眼。也可掷骰交由天命裁定。</p>
+        <div class="land-map" id="landMap" aria-label="华夏舆图 · 选择降临地"></div>
+        <div class="land-pick" id="landPickInfo"></div>
+        <div class="random-roll" id="btnRandomLand" style="margin-top:12px">
+          <span class="rr-dice" data-icon="dice"></span><span id="randomLandLabel">掷骰 · 随机降临</span>
+        </div>
+        <div class="wiz-time-row">
+          <div class="section-title"><span class="orn" data-icon="clock"></span>开局时间（黑城纪年）</div>
+          <p class="text-dim" style="font-size:12px; margin-bottom:12px; line-height:1.8">设定降临初始时刻，游戏内将同时以 天干地支纪年 · 十二时辰 · 24 小时制 显示。时辰与时/分输入双向联动。</p>
+          <div class="wt-fields">
+            <label class="wt-field"><span>年</span><input type="number" id="wizTimeYear" class="input wt-input" min="1" max="9999" value="1"></label>
+            <label class="wt-field"><span>月</span><input type="number" id="wizTimeMonth" class="input wt-input" min="1" max="12" value="1"></label>
+            <label class="wt-field"><span>日</span><input type="number" id="wizTimeDay" class="input wt-input" min="1" max="31" value="1"></label>
+            <label class="wt-field"><span>时</span><input type="number" id="wizTimeHour" class="input wt-input" min="0" max="23" value="18"></label>
+            <label class="wt-field"><span>分</span><input type="number" id="wizTimeMin" class="input wt-input" min="0" max="59" value="30"></label>
+            <label class="wt-field wt-shichen"><span>时辰</span>
+              <select id="wizTimeShichen" class="input wt-input">
+                <option value="子时">子时</option><option value="丑时">丑时</option><option value="寅时">寅时</option><option value="卯时">卯时</option><option value="辰时">辰时</option><option value="巳时">巳时</option><option value="午时">午时</option><option value="未时">未时</option><option value="申时">申时</option><option value="酉时">酉时</option><option value="戌时">戌时</option><option value="亥时">亥时</option>
+              </select>
+            </label>
+          </div>
+          <div class="wiz-time-preview" id="wizTimePreview"></div>
+        </div>
+      </div>
+      <!-- 步骤5 神经链接 -->
+      <div class="wstep-pane" id="wpane-4">
+        <div class="link-stage" id="linkStage">
+          <div class="ls-ring"></div><div class="ls-ring2"></div>
+          <div class="ls-core" data-icon="brain"></div>
+          <div>
+            <div class="ls-title">接入神经链接</div>
+            <div class="ls-sub" id="linkSub">正在同步意识频率 · 校准五感基线 · 注入黑城世界书</div>
+          </div>
+          <div class="ls-bars" id="linkBars">
+            <div class="ls-bar"><span class="lb-name">意识同步</span><span class="lb-track"><i id="lbA"></i></span><span class="num" id="lbAv">0%</span></div>
+            <div class="ls-bar"><span class="lb-name">记忆写入</span><span class="lb-track"><i id="lbB"></i></span><span class="num" id="lbBv">0%</span></div>
+            <div class="ls-bar"><span class="lb-name">灵视校准</span><span class="lb-track"><i id="lbC"></i></span><span class="num" id="lbCv">0%</span></div>
+          </div>
+        </div>
+        <p class="text-dim" style="font-size:11.5px; margin-top:14px; text-align:center; line-height:1.9" id="linkSummary">—</p>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-ghost" id="btnWizPrev" disabled>上一步</button>
+      <button class="btn btn-primary" id="btnWizNext">下一步</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============ 模态: 编年史 ============ -->
+<div class="modal-layer" id="modalChronicle" role="dialog" aria-modal="true" aria-labelledby="chronicleTitle">
+  <div class="modal-backdrop" data-close-modal="modalChronicle"></div>
+  <div class="modal modal-lg">
+    <div class="modal-head">
+      <span class="mh-icon" data-icon="book-open"></span>
+      <div style="flex:1">
+        <h3 id="chronicleTitle">世界编年史</h3>
+        <div class="sub">由 <span style="font-family:var(--font-mono)">&lt;sum&gt;</span> 协议自动落笔 · 共 <span id="chronicleCount">0</span> 条</div>
+      </div>
+      <button class="icon-btn" data-close-modal="modalChronicle" aria-label="关闭"><span data-icon="x"></span></button>
+    </div>
+    <div class="modal-body">
+      <div class="chronicle-list" id="chronicleList"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ 模态: 设置 ============ -->
+<div class="modal-layer" id="modalSettings" role="dialog" aria-modal="true" aria-labelledby="settingsTitle">
+  <div class="modal-backdrop" data-close-modal="modalSettings"></div>
+  <div class="modal">
+    <div class="modal-head">
+      <span class="mh-icon" data-icon="settings"></span>
+      <div style="flex:1"><h3 id="settingsTitle">设置</h3><div class="sub">界面 · 体验 · 协议</div></div>
+      <button class="icon-btn" data-close-modal="modalSettings" aria-label="关闭"><span data-icon="x"></span></button>
+    </div>
+    <div class="modal-body" style="display:flex; flex-direction:column; gap:18px">
+      <div class="field">
+        <label>主题外观</label>
+        <div class="tabbar" id="themeTabs" role="tablist">
+          <button class="tab-btn is-active" data-theme-value="ink" role="tab">墨玉</button>
+          <button class="tab-btn" data-theme-value="crimson" role="tab">赤焰</button>
+          <button class="tab-btn" data-theme-value="jade" role="tab">青瓷</button>
+        </div>
+      </div>
+      <div class="field">
+        <label>文字流速 <span class="num" id="speedVal">中</span></label>
+        <input type="range" class="slider" id="speedSlider" min="1" max="5" value="3" aria-label="文字流速">
+      </div>
+      <div class="field">
+        <label>正文字号 <span class="num" id="fsVal">15.5</span></label>
+        <input type="range" class="slider" id="fsSlider" min="13" max="19" step="0.5" value="15.5" aria-label="正文字号">
+      </div>
+      <div style="display:flex; flex-direction:column; gap:12px">
+        <div style="display:flex; align-items:center; justify-content:space-between">
+          <div><div style="font-size:12.5px; color:var(--paper); letter-spacing:.06em">流式传输</div><div style="font-size:10px; color:var(--paper-faint); margin-top:2px">开启：AI 回复逐字流式浮现（SSE）；关闭：一次性输出全文</div></div>
+          <button class="switch" id="swTypewriter" role="switch" aria-checked="false" aria-label="流式传输"></button>
+        </div>
+        <div style="display:flex; align-items:center; justify-content:space-between">
+          <div><div style="font-size:12.5px; color:var(--paper); letter-spacing:.06em">自动保存会话</div><div style="font-size:10px; color:var(--paper-faint); margin-top:2px">每次对话后把会话记录写入当前存档槽（与其它槽位独立）</div></div>
+          <button class="switch" id="swAutosave" role="switch" aria-checked="true" aria-label="自动存档"></button>
+        </div>
+        <div style="display:flex; align-items:center; justify-content:space-between">
+          <div><div style="font-size:12.5px; color:var(--paper); letter-spacing:.06em">环境音效</div><div style="font-size:10px; color:var(--paper-faint); margin-top:2px">原型版暂未接入音频通道</div></div>
+          <button class="switch" id="swAudio" role="switch" aria-checked="false" aria-label="环境音效"></button>
+        </div>
+      </div>
+      <hr class="hairline" style="margin:2px 0">
+      <div class="section-title" style="margin-bottom:2px"><span class="orn" data-icon="brain"></span>AI 接口 · OpenAI 兼容</div>
+      <div class="text-dim" style="font-size:10.5px; line-height:1.7; margin-bottom:10px">填写 OpenAI 兼容接口后，剧情由真实 LLM 驱动。留空则使用内置离线推演。</div>
+      <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:10px">
+        <div><div style="font-size:12.5px; color:var(--paper); letter-spacing:.06em">启用 AI 引擎</div><div style="font-size:10px; color:var(--paper-faint); margin-top:2px">需要下方接口与密钥有效</div></div>
+        <button class="switch" id="swAI" role="switch" aria-checked="false" aria-label="启用AI引擎"></button>
+      </div>
+      <div class="field">
+        <label>接口地址 Base URL</label>
+        <input type="text" class="ai-input" id="aiBaseUrl" placeholder="https://api.openai.com/v1" spellcheck="false">
+        <div class="text-dim" style="font-size:10px; margin-top:3px">OpenAI 兼容 /chat/completions 根地址，如 vllm / one-api / SillyTavern 后端</div>
+        <div class="text-dim" style="font-size:10px; color:var(--jade-bright); margin-top:3px">⚡ 自动代理：通过 <b>node server.js</b> 启动并用 http://localhost:8000 打开时，请求自动走本地同源转发，opencode.ai/zen 等无 CORS 头的接口也能连通；file:// 打开则直连。无需任何开关。</div>
+      </div>
+      <div class="field">
+        <label>API Key</label>
+        <input type="password" class="ai-input" id="aiApiKey" placeholder="sk-..." spellcheck="false" autocomplete="off">
+      </div>
+      <div class="field">
+        <label>模型名称</label>
+        <input type="text" class="ai-input" id="aiModel" placeholder="gpt-4o-mini / deepseek-chat / ..." spellcheck="false">
+      </div>
+      <button class="btn btn-ghost btn-block" id="btnTestAI" style="margin-bottom:4px"><span data-icon="pulse"></span>测试连接</button>
+      <div class="ai-status" id="aiStatus" style="display:none"></div>
+
+      <hr class="hairline" style="margin:2px 0">
+      <button class="btn btn-danger btn-block" id="btnResetSave"><span data-icon="trash"></span>重置全部存档并重新降临</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============ 模态: 世界书列表 (skill LorebookModal) ============ -->
+<div class="modal-layer" id="modalLorebook" role="dialog" aria-modal="true" aria-labelledby="lorebookTitle">
+  <div class="modal-backdrop" data-close-modal="modalLorebook"></div>
+  <div class="modal modal-lg">
+    <div class="modal-head">
+      <span class="mh-icon" data-icon="scroll"></span>
+      <div style="flex:1"><h3 id="lorebookTitle">世界书 Lorebook</h3><div class="sub" id="lorebookSub">SillyTavern World Info · 多本管理 · 开关启用的书参与上下文注入</div></div>
+      <button class="icon-btn" data-close-modal="modalLorebook" aria-label="关闭"><span data-icon="x"></span></button>
+    </div>
+    <div class="modal-body" style="display:flex; flex-direction:column; gap:12px">
+      <div class="lb-toolbar">
+        <button class="btn btn-ghost btn-mini" id="btnLbNew"><span data-icon="plus"></span>新建世界书</button>
+        <button class="btn btn-ghost btn-mini" id="btnLbImport"><span data-icon="arrow-down"></span>导入 JSON</button>
+        <span style="flex:1"></span>
+        <span class="text-dim" style="font-size:10px">勾选 = 该书条目参与注入</span>
+      </div>
+      <div class="lorebook-list" id="lorebookList"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ 模态: 世界书编辑器 (skill LorebookEditorModal + EntryForm) ============ -->
+<div class="modal-layer" id="modalLorebookEditor" role="dialog" aria-modal="true" aria-labelledby="lorebookEditorTitle">
+  <div class="modal-backdrop" data-close-modal="modalLorebookEditor"></div>
+  <div class="modal modal-lg">
+    <div class="modal-head">
+      <span class="mh-icon" data-icon="book-open"></span>
+      <div style="flex:1"><h3 id="lorebookEditorTitle">编辑世界书</h3><div class="sub" id="lorebookEditorSub">书名 · 描述 · 条目 EntryForm · 修改自动保存</div></div>
+      <button class="icon-btn" data-close-modal="modalLorebookEditor" aria-label="关闭"><span data-icon="x"></span></button>
+    </div>
+    <div class="modal-body" style="display:flex; flex-direction:column; gap:12px">
+      <div class="field">
+        <label>书名</label>
+        <input type="text" class="ai-input" id="lbEditorName" spellcheck="false">
+      </div>
+      <div class="field">
+        <label>描述</label>
+        <textarea class="ai-input" id="lbEditorDesc" rows="2" style="resize:vertical" spellcheck="false" placeholder="这本书讲什么（可选）"></textarea>
+      </div>
+      <div class="lb-toolbar">
+        <button class="btn btn-ghost btn-mini" id="btnLbAddEntry" style="color:var(--gold-bright)"><span data-icon="plus"></span>＋ 条目</button>
+        <button class="btn btn-ghost btn-mini" id="btnLbExport"><span data-icon="arrow-up"></span>导出本书</button>
+        <span style="flex:1"></span>
+        <button class="btn btn-ghost btn-mini" id="btnLbDelete" style="color:var(--crimson-bright,#e0897a)"><span data-icon="trash"></span>删除本书</button>
+      </div>
+      <div class="entry-form-list" id="entryFormList"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ 模态: 预设管理 (skill PresetModal + PromptOrderEditor) ============ -->
+<div class="modal-layer" id="modalPreset" role="dialog" aria-modal="true" aria-labelledby="presetTitle">
+  <div class="modal-backdrop" data-close-modal="modalPreset"></div>
+  <div class="modal modal-lg">
+    <div class="modal-head">
+      <span class="mh-icon" data-icon="dice"></span>
+      <div style="flex:1"><h3 id="presetTitle">预设 Preset</h3><div class="sub" id="presetSub">SillyTavern 预设 · 采样参数 + 提示词块 · 草稿编辑，存入并应用后生效</div></div>
+      <button class="icon-btn" data-close-modal="modalPreset" aria-label="关闭"><span data-icon="x"></span></button>
+    </div>
+    <div class="modal-body" style="display:flex; flex-direction:column; gap:12px">
+      <div class="lb-toolbar">
+        <select class="ai-input" id="presetSelect" style="flex:1; min-width:0" aria-label="选择预设"></select>
+        <button class="btn btn-ghost btn-mini" id="btnPresetNew"><span data-icon="plus"></span>新建</button>
+        <button class="btn btn-ghost btn-mini" id="btnPresetImport"><span data-icon="arrow-down"></span>导入 JSON</button>
+        <button class="btn btn-ghost btn-mini" id="btnPresetExport"><span data-icon="arrow-up"></span>导出</button>
+        <button class="btn btn-ghost btn-mini" id="btnPresetDelete" style="color:var(--crimson-bright,#e0897a)"><span data-icon="trash"></span>删除</button>
+      </div>
+      <div class="empty-hint" id="presetEmpty" style="display:none">暂无预设。点击「导入 JSON」载入 SillyTavern 的 preset 文件，或「新建」。</div>
+      <div class="preset-section">
+        <div class="preset-section-head"><span data-icon="settings"></span>采样参数 Sampling</div>
+        <div class="preset-grid">
+          <div class="preset-field preset-field--wide"><label for="presetName">预设名称</label><input type="text" class="ai-input" id="presetName" placeholder="预设名" spellcheck="false"></div>
+          <div class="preset-field"><label for="presetTemp">温度 Temperature</label><input type="number" class="ai-input" id="presetTemp" step="0.1" min="0" max="2"></div>
+          <div class="preset-field"><label for="presetTopP">Top-P</label><input type="number" class="ai-input" id="presetTopP" step="0.05" min="0" max="1"></div>
+          <div class="preset-field"><label for="presetTopK">Top-K</label><input type="number" class="ai-input" id="presetTopK" step="1" min="0"></div>
+          <div class="preset-field"><label for="presetTopA">Top-A</label><input type="number" class="ai-input" id="presetTopA" step="0.05" min="0" max="1"></div>
+          <div class="preset-field"><label for="presetMinP">Min-P</label><input type="number" class="ai-input" id="presetMinP" step="0.05" min="0" max="1"></div>
+          <div class="preset-field"><label for="presetRepPen">重复惩罚</label><input type="number" class="ai-input" id="presetRepPen" step="0.05" min="0"></div>
+          <div class="preset-field"><label for="presetFreqPen">频率惩罚</label><input type="number" class="ai-input" id="presetFreqPen" step="0.1" min="0" max="2"></div>
+          <div class="preset-field"><label for="presetPresPen">存在惩罚</label><input type="number" class="ai-input" id="presetPresPen" step="0.1" min="0" max="2"></div>
+          <div class="preset-field"><label for="presetCtx">上下文</label><input type="number" class="ai-input" id="presetCtx" step="256" min="512"></div>
+          <div class="preset-field"><label for="presetTokens">最大回复</label><input type="number" class="ai-input" id="presetTokens" step="64" min="64"></div>
+          <div class="preset-field preset-field--wide">
+            <label class="preset-toggle"><input type="checkbox" id="presetStream">流式输出（受游戏设置「流式传输」总开关覆盖）</label>
+          </div>
+        </div>
+      </div>
+      <div class="preset-section">
+        <div class="preset-section-head"><span data-icon="scroll"></span>提示词块 Prompt Blocks <span class="preset-badge" id="promptOrderLen"></span></div>
+        <p class="preset-hint">勾选=启用（参与组装）；↑↓ 调整顺序；点击行展开查看/编辑内容。灰色=已停用（保留位置）。主提示词 Main 也作为一块参与排序。</p>
+        <div class="prompt-order" id="promptOrder"></div>
+        <p class="preset-hint" id="promptOrderEmpty" hidden>该预设无提示词库。导入带 prompts 的 SillyTavern 预设后，此处会列出所有块。</p>
+      </div>
+      <div style="display:flex; justify-content:flex-end">
+        <button class="btn btn-primary" id="btnPresetSave"><span data-icon="save"></span>存入并应用</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ 模态: 会话记录与存档 ============ -->
+<div class="modal-layer" id="modalLoad" role="dialog" aria-modal="true" aria-labelledby="loadTitle">
+  <div class="modal-backdrop" data-close-modal="modalLoad"></div>
+  <div class="modal">
+    <div class="modal-head">
+      <span class="mh-icon" data-icon="folder-open"></span>
+      <div style="flex:1"><h3 id="loadTitle">存档管理</h3><div class="sub" id="loadSub">多槽位存档 · 读取后恢复游戏数据与会话 · 回退剧情用「世界快照」</div></div>
+      <button class="icon-btn" data-close-modal="modalLoad" aria-label="关闭"><span data-icon="x"></span></button>
+    </div>
+    <div class="modal-body">
+      <div class="save-slots" id="saveSlots" style="display:flex; flex-direction:column; gap:8px"></div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-ghost" id="btnNewGame"><span data-icon="plus"></span>新游戏</button>
+      <button class="btn btn-ghost" id="btnReturnMenu"><span data-icon="list"></span>返回主菜单</button>
+      <button class="btn btn-primary" id="btnSaveNamed"><span data-icon="save"></span>存档</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============ 弹窗: 命名存档 ============ -->
+<div class="modal-layer" id="modalSaveName" role="dialog" aria-modal="true" aria-labelledby="saveNameTitle">
+  <div class="modal-backdrop" data-close-modal="modalSaveName"></div>
+  <div class="modal" style="width:min(92vw, 420px)">
+    <div class="modal-head">
+      <span class="mh-icon" data-icon="save"></span>
+      <div style="flex:1"><h3 id="saveNameTitle">命名存档</h3><div class="sub">给这个存档点起个名字 · 确认后生成新存档位</div></div>
+      <button class="icon-btn" data-close-modal="modalSaveName" aria-label="关闭"><span data-icon="x"></span></button>
+    </div>
+    <div class="modal-body" style="display:flex; flex-direction:column; gap:10px">
+      <div class="field">
+        <label>存档名称</label>
+        <input type="text" class="ai-input" id="saveNameInput" maxlength="20" placeholder="例如：第三章 · 长安夜" spellcheck="false">
+        <div class="text-dim" style="font-size:10px; margin-top:3px">留空则自动以「角色 · 等级 · 地点」命名</div>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-ghost" data-close-modal="modalSaveName">取消</button>
+      <button class="btn btn-primary" id="btnSaveNameOk"><span data-icon="check"></span>确认存档</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============ 模态: 物品详情 ============ -->
+<div class="modal-layer" id="modalItem" role="dialog" aria-modal="true" aria-labelledby="itemTitle">
+  <div class="modal-backdrop" data-close-modal="modalItem"></div>
+  <div class="modal">
+    <div class="modal-head">
+      <span class="mh-icon" data-icon="gem"></span>
+      <div style="flex:1"><h3 id="itemTitle">物品详情</h3><div class="sub" id="itemSub">—</div></div>
+      <button class="icon-btn" data-close-modal="modalItem" aria-label="关闭"><span data-icon="x"></span></button>
+    </div>
+    <div class="modal-body" id="itemBody"></div>
+    <div class="modal-foot" id="itemActions"></div>
+  </div>
+</div>
+
+<!-- ============ 模态: 人物详情 ============ -->
+<div class="modal-layer" id="modalNpc" role="dialog" aria-modal="true" aria-labelledby="npcTitle">
+  <div class="modal-backdrop" data-close-modal="modalNpc"></div>
+  <div class="modal">
+    <div class="modal-head">
+      <span class="mh-icon" data-icon="user"></span>
+      <div style="flex:1"><h3 id="npcTitle">人物档案</h3><div class="sub" id="npcSub">—</div></div>
+      <button class="icon-btn" data-close-modal="modalNpc" aria-label="关闭"><span data-icon="x"></span></button>
+    </div>
+    <div class="modal-body" id="npcBody"></div>
+  </div>
+</div>
+
+<!-- ============ 模态: 17+1 战力榜 ============ -->
+<div class="modal-layer" id="modalPower" role="dialog" aria-modal="true" aria-labelledby="powerTitle">
+  <div class="modal-backdrop" data-close-modal="modalPower"></div>
+  <div class="modal modal-lg">
+    <div class="modal-head">
+      <span class="mh-icon" data-icon="crown"></span>
+      <div style="flex:1">
+        <h3 id="powerTitle">黑城势力战力榜</h3>
+        <div class="sub">17 席正统 + 1 席禁忌 · 大秦至太平天国 · 黄巾不列排位</div>
+      </div>
+      <button class="icon-btn" data-close-modal="modalPower" aria-label="关闭"><span data-icon="x"></span></button>
+    </div>
+    <div class="modal-body">
+      <div class="rank-table" id="rankTable"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ 模态: 记忆分层 (天道总结) ============ -->
+<div class="modal-layer" id="modalMemory" role="dialog" aria-modal="true" aria-labelledby="memoryTitle">
+  <div class="modal-backdrop" data-close-modal="modalMemory"></div>
+  <div class="modal modal-lg">
+    <div class="modal-head">
+      <span class="mh-icon" data-icon="brain"></span>
+      <div style="flex:1"><h3 id="memoryTitle">记忆分层</h3><div class="sub" id="memorySub">最新 X 层全文 → 较早回复用小总结 → 更早用大总结</div></div>
+      <button class="icon-btn" data-close-modal="modalMemory" aria-label="关闭"><span data-icon="x"></span></button>
+    </div>
+    <div class="modal-body" style="display:flex; flex-direction:column; gap:14px">
+      <div class="mem-cfg">
+        <div style="display:flex; align-items:center; justify-content:space-between">
+          <div><div style="font-size:12.5px; color:var(--paper); letter-spacing:.06em">启用记忆分层</div>
+            <div style="font-size:10px; color:var(--paper-faint); margin-top:2px">关闭后历史全文注入（消耗更多上下文）</div></div>
+          <button class="switch" id="swMemory" role="switch" aria-checked="true" aria-label="启用记忆分层"></button>
+        </div>
+        <div class="mem-cfg-row">
+          <label class="mem-cfg-field">最新完整聊天层数 X<input type="number" class="input" id="memLayers" min="1" max="40" value="6"></label>
+          <label class="mem-cfg-field">大总结起点 Y（倒数第 Y 层起只发大总结）<input type="number" class="input" id="memLargeStart" min="2" max="100" value="14"></label>
+          <button class="btn btn-ghost btn-sm" id="btnMemSaveCfg" style="align-self:flex-end"><span data-icon="check"></span>保存设置</button>
+        </div>
+        <p class="text-dim" style="font-size:10.5px; line-height:1.8; margin:0">AI 每回合的 <span style="font-family:var(--font-mono)">&lt;sum&gt;</span> 自动写入该回复的小总结，<span style="font-family:var(--font-mono)">&lt;events&gt;</span> 写入大总结；也可在下方手动补充或改写。总结属于当前存档。</p>
+      </div>
+      <div class="mem-sec">
+        <div class="section-title"><span class="orn" data-icon="edit"></span>小总结（较早 AI 回复 · 可编辑）</div>
+        <div class="mem-list" id="memSmallList"></div>
+      </div>
+      <div class="mem-sec">
+        <div class="section-title"><span class="orn" data-icon="book-open"></span>大总结（更早 AI 回复 · 可编辑）</div>
+        <div class="mem-list" id="memLargeList"></div>
+      </div>
+      <div class="mem-sec">
+        <div class="section-title"><span class="orn" data-icon="plus"></span>手动补充（AI 忘写时，挂到最新回复）</div>
+        <label class="mem-cfg-field" style="margin-bottom:6px">小总结<textarea class="input mem-input" id="memManualSmall" rows="2" placeholder="留空则不补充小总结"></textarea></label>
+        <label class="mem-cfg-field" style="margin-bottom:6px">大总结<textarea class="input mem-input" id="memManualLarge" rows="2" placeholder="留空则不补充大总结"></textarea></label>
+        <button class="btn btn-ghost btn-sm" id="btnMemFillLatest"><span data-icon="plus"></span>补充到最新回复</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ 模态: 世界快照 (每条 AI 回复自动打点 · 退档) ============ -->
+<div class="modal-layer" id="modalWorldSnap" role="dialog" aria-modal="true" aria-labelledby="worldSnapTitle">
+  <div class="modal-backdrop" data-close-modal="modalWorldSnap"></div>
+  <div class="modal modal-lg">
+    <div class="modal-head">
+      <span class="mh-icon" data-icon="history"></span>
+      <div style="flex:1"><h3 id="worldSnapTitle">世界快照</h3><div class="sub" id="worldSnapSub">每段 AI 回复自动打点 · 可退档</div></div>
+      <button class="icon-btn" data-close-modal="modalWorldSnap" aria-label="关闭"><span data-icon="x"></span></button>
+    </div>
+    <div class="modal-body" style="display:flex; flex-direction:column; gap:12px">
+      <div class="lb-toolbar">
+        <button class="btn btn-ghost btn-mini" id="btnSnapNow"><span data-icon="save"></span>现在打点</button>
+        <button class="btn btn-ghost btn-mini" id="btnSnapClear" style="color:var(--crimson-bright,#e0897a)"><span data-icon="trash"></span>清空</button>
+        <span style="flex:1"></span>
+        <span class="text-dim" style="font-size:10px" id="worldSnapCount"></span>
+      </div>
+      <div class="save-slots" id="worldSnapList" style="display:flex; flex-direction:column; gap:8px"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ 模态: 通用确认 ============ -->
+<div class="modal-layer" id="modalConfirm" role="dialog" aria-modal="true" aria-labelledby="confirmTitle">
+  <div class="modal-backdrop" data-close-modal="modalConfirm"></div>
+  <div class="modal" style="width:min(92vw,420px)">
+    <div class="modal-head">
+      <span class="mh-icon" id="confirmIcon" data-icon="alert"></span>
+      <div style="flex:1"><h3 id="confirmTitle">确认</h3></div>
+      <button class="icon-btn" data-close-modal="modalConfirm" aria-label="关闭"><span data-icon="x"></span></button>
+    </div>
+    <div class="modal-body" id="confirmBody" style="font-size:13px; line-height:1.9; color:var(--paper-dim)"></div>
+    <div class="modal-foot">
+      <button class="btn btn-ghost" data-close-modal="modalConfirm">取消</button>
+      <button class="btn btn-danger" id="confirmOkBtn">确认</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============ 通知容器 ============ -->
+<div class="toast-container" id="toastContainer" aria-live="polite"></div>
+<!-- ============ 变量更新弹幕 ============ -->
+<div class="danmaku-layer" id="danmakuLayer" aria-hidden="true"></div>
+
+<script src="js/icons.js"></script>
+<script src="js/china-map.js"></script>
+<script src="js/data.js"></script>
+<script src="js/varmodel.js"></script>
+<script src="js/vars.js"></script>
+<script src="js/lorebook.js"></script>
+<script src="js/sillytavern.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>
