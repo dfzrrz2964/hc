@@ -149,7 +149,18 @@
     所在位置: '玩家位置', 地点: '玩家位置',
     生命值: '生命', 当前生命值: '生命', 生命值上限: '生命',
     气力值: '气力', 当前气力值: '气力', 气力值上限: '气力',
-    当前经验值: '经验'
+    当前经验值: '经验',
+    /* 用户 schema 的扁平路径: 顶层角色字段可直接作为根 */
+    等级: '角色', 位阶: '角色', 职业: '角色', 战力评价: '角色',
+    兵种评级: '角色', 自由属性点: '角色',
+    时间: '当前时间',
+    力量: '属性', 敏捷: '属性', 智力: '属性', 攻击: '属性',
+    防御: '属性', 穿透: '属性', 幸运: '属性', 魅力: '属性'
+  };
+  /* 扁平根缺省子字段 (等级 = 角色.等级 之类的整条顶层路径) */
+  const ROLE_DEFAULT = {
+    等级: '等级', 位阶: '位阶', 职业: '主职业', 战力评价: '战力评价',
+    兵种评级: '兵种评级', 自由属性点: '自由属性点'
   };
   const SHICHEN = ['子', '丑', '寅', '卯', '辰', '巳', '午', '未', '申', '酉', '戌', '亥'];
   const ATTRS = ['力量', '敏捷', '智力', '攻击', '防御', '穿透', '魅力', '幸运'];
@@ -229,7 +240,8 @@
   };
 
   H.属性 = function (c) {
-    const sub = segAt(c.path, 1);
+    /* 扁平根 (力量/敏捷/…) 缺省子字段 = 根名本身 */
+    const sub = segAt(c.path, 1) || (ATTRS.indexOf(c.rawRoot) >= 0 ? c.rawRoot : null);
     if (ATTRS.indexOf(sub) < 0) throw '属性只认：' + ATTRS.join(' / ');
     const n = num(c.value); if (n === null) throw '属性.' + sub + ' 须为整数';
     const s = getState(); if (!s.属性 || typeof s.属性 !== 'object') s.属性 = {};
@@ -242,7 +254,8 @@
   };
 
   H.角色 = function (c) {
-    const sub = segAt(c.path, 1);
+    let sub = segAt(c.path, 1);
+    if (!sub) sub = ROLE_DEFAULT[c.rawRoot] || null;
     if (!sub) throw '角色需要子字段，如 角色.自由属性点';
     const s = getState();
     if (!s.角色 || typeof s.角色 !== 'object') s.角色 = {};
@@ -287,7 +300,7 @@
   function vital(root, display, map, curDef, maxDef) {
     return function (c) {
       /* 裸别名根 (生命值/当前生命值/生命值上限…) 无子字段 → 按根推断 当前/上限 */
-      const raw = segAt(c.path, 1) || VITAL_DEFAULT[c.root] || '当前';
+      const raw = segAt(c.path, 1) || VITAL_DEFAULT[c.rawRoot] || VITAL_DEFAULT[c.root] || '当前';
       const key = map[raw];
       if (!key) throw root + '只认 当前 / 上限（别名 ' + Object.keys(map).join('/') + '）';
       const n = num(c.value); if (n === null) throw root + '.' + key + ' 须为整数';
@@ -336,7 +349,8 @@
     const name = segAt(c.path, 1);
     if (!name) throw '背包需要 [物品名]，如 背包[干粮].数量';
     if (BAD_KEY(name)) throw '非法物品名';
-    const field = segAt(c.path, 2) || '数量';
+    const FIELD_MAP = { 物品数量: '数量', 物品类型: '类型', 物品效果: '效果' };
+    const field = FIELD_MAP[segAt(c.path, 2)] || segAt(c.path, 2) || '数量';
     const s = getState();
     if (!s.背包详情 || typeof s.背包详情 !== 'object') s.背包详情 = {};
     const detail = ensure(s.背包详情, name, {});
@@ -376,6 +390,8 @@
   };
 
   H.装备 = function (c) {
+    /* 装备[装备名] (方括号键) → 名称字典 = 装备详情 (用户 schema: 装备 按名建库) */
+    if (c.path[1] && c.path[1].key) return H.装备详情(c);
     if (c.op !== '=') throw '装备只支持 =（卸下写 = 无）';
     const slotRaw = segAt(c.path, 1);
     if (!slotRaw) throw '装备需要槽位，如 装备.武器1 = 锈铁短刀';
@@ -429,7 +445,14 @@
     }
     if (f1 === '基础属性') {
       const attr = segAt(c.path, 3);
-      if (!attr) throw '基础属性需要属性名，如 基础属性.攻击';
+      if (!attr) {
+        /* 基础属性 = "攻击+4，防御+2" (用户 schema 为字符串) */
+        if (c.op !== '=') throw '基础属性 整串写入只支持 =';
+        const t = String(c.value == null ? '' : c.value).trim();
+        if (!t || t.length > 80) throw '基础属性 应为简短文本（≤80 字）';
+        d.基础属性 = t;
+        return { kind: 'gain', display: name + ' 基础属性已记录' };
+      }
       const n = num(c.value); if (n === null) throw '基础属性.' + attr + ' 须为整数';
       const bag = ensure(d, '基础属性', {});
       const cur = bag[attr] || 0;
@@ -461,6 +484,11 @@
       d.绑定状态 = b === null ? String(c.value == null ? '' : c.value).trim() : (b ? '已绑定' : '未绑定');
       return { kind: 'gain', display: name + ' 绑定 → ' + d.绑定状态 };
     }
+    if (f1 === '等级要求') {
+      const n = num(c.value); if (n === null || n < 0 || n > 999) throw '等级要求应为 0~999 的整数';
+      d.等级要求 = n;
+      return { kind: 'gain', display: name + ' 等级要求 → ' + n };
+    }
     const TEXT = ['穿戴要求', '特效类型', '特效详情', '套装效果', '精炼材料类型'];
     if (TEXT.indexOf(f1) >= 0) {
       const t = String(c.value == null ? '' : c.value).trim();
@@ -478,7 +506,8 @@
     const s = getState();
     if (!s.技能详情 || typeof s.技能详情 !== 'object') s.技能详情 = {};
     const d = ensure(s.技能详情, name, { 技能等级: 1, 技能效果: '', 消耗气力: 0 });
-    const f = segAt(c.path, 2) || '等级';
+    const FIELD_ALIAS = { 技能等级: '等级', 技能效果: '效果', 消耗气力: '消耗气力' };
+    const f = FIELD_ALIAS[segAt(c.path, 2)] || segAt(c.path, 2) || '等级';
     if (f === '等级') {
       const n = num(c.value); if (n === null || n < 0 || n > 10) throw '技能等级应为 0~10 的整数';
       d.技能等级 = n;
@@ -528,7 +557,8 @@
     if (!s.任务进度 || typeof s.任务进度 !== 'object') s.任务进度 = {};
     const detail = ensure(s.任务详情, name, {});
     const prog = ensure(s.任务进度, name, { cur: 0, max: 1, done: false });
-    const f = segAt(c.path, 2) || '类型';
+    const FIELD_ALIAS = { 任务类型: '类型', 任务奖励: '奖励' };
+    const f = FIELD_ALIAS[segAt(c.path, 2)] || segAt(c.path, 2) || '类型';
     if (f === '类型') {
       if (c.op !== '=') throw '任务[名].类型 只支持 =';
       const t = String(c.value == null ? '' : c.value).trim();
@@ -583,7 +613,14 @@
     }
     if (f1 === '属性') {
       const attrRaw = segAt(c.path, 3);
-      if (!attrRaw) throw '属性需要字段名，如 属性.力量';
+      if (!attrRaw) {
+        /* 属性 = 简述文本 (用户 schema: 属性为字符串, 如「力量型, 身负轻伤」) */
+        if (c.op !== '=') throw '周围人物[名].属性 整串写入只支持 =';
+        const t = String(c.value == null ? '' : c.value).trim();
+        if (!t || t.length > 120) throw '属性 应为简短文本（≤120 字）';
+        d.属性 = t;
+        return { kind: 'gain', display: name + ' 属性已记录' };
+      }
       const AMAP = { 生命值: '当前生命值', 当前生命值: '当前生命值', 生命值上限: '生命值上限', 气力值: '当前气力值', 当前气力值: '当前气力值', 气力值上限: '气力值上限' };
       const attr = AMAP[attrRaw] || attrRaw;
       if (NPC_ATTRS.indexOf(attr) < 0) throw 'NPC 属性只认：' + NPC_ATTRS.join(' / ');
@@ -618,7 +655,7 @@
     const s = getState();
     if (!s || typeof s !== 'object') return { ok: false, raw: cmd.raw, error: '游戏状态未就绪' };
     try {
-      const r = H[root]({ root: root, path: cmd.path, op: cmd.op, value: c_val(cmd), rawVal: cmd.rawVal });
+      const r = H[root]({ root: root, rawRoot: cmd.path[0] && (cmd.path[0].seg || cmd.path[0].key), path: cmd.path, op: cmd.op, value: c_val(cmd), rawVal: cmd.rawVal });
       return { ok: true, raw: cmd.raw, kind: r.kind, display: r.display };
     } catch (e) {
       return recoverDeep(cmd, { ok: false, raw: cmd.raw, error: String((e && e.message) || e) });

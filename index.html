@@ -24,10 +24,10 @@
   </div>
   <div class="ts-inner">
     <div class="ts-seal" data-icon="seal" aria-hidden="true"></div>
-    <div class="ts-kicker">第十七纪元 · 残响纪元</div>
+    <div class="ts-kicker">残响纪元 · 黑城降临</div>
     <h1 class="ts-title" id="titleScreenTitle">黑城残响</h1>
     <div class="ts-sub">BLACK CITY ECHO</div>
-    <p class="ts-poem">「残响之下，万朝同夜。<br>铜牌在怀，命途未卜。」</p>
+    <p class="ts-poem">「万朝同夜，<br>命途未卜。」</p>
     <div class="ts-actions">
       <button class="btn btn-primary ts-btn ts-btn-main" id="btnTitleNew"><span data-icon="link"></span>开始游戏</button>
       <button class="btn btn-ghost ts-btn" id="btnTitleContinue"><span data-icon="folder-open"></span>继续游戏<span class="ts-cont-count" id="tsContinueCount"></span></button>
@@ -132,6 +132,10 @@
 
   <!-- ============ 中栏: 剧情 ============ -->
   <main class="center-col" id="centerCol" aria-label="剧情面板">
+    <div class="mobile-status" id="mobileStatus" aria-hidden="true">
+      <span class="ms-item"><span class="ms-icon" data-icon="clock"></span><b id="msClock">—</b></span>
+      <span class="ms-item"><span class="ms-icon" data-icon="map-pin"></span><b id="msLoc">—</b></span>
+    </div>
     <div class="story-wrap" id="storyWrap">
       <div class="story-scroll" id="storyScroll" aria-live="polite"></div>
     </div>
@@ -153,6 +157,7 @@
     </div>
   </main>
 
+  <div class="drawer-backdrop" id="rightDrawerBackdrop"></div>
   <!-- ============ 右栏: 情报面板 (与左栏对称 · 大号入口磁贴, 点击弹窗) ============ -->
   <aside class="right-col" id="rightCol" aria-label="情报面板">
 
@@ -257,12 +262,12 @@
   <div class="modal modal-panel-map">
     <div class="modal-head">
       <span class="mh-icon" data-icon="map"></span>
-      <div style="flex:1"><h3 id="panelMapTitle">九州舆图</h3><div class="sub">第十七纪元 · 点击城市圆点查看区域情报</div></div>
+      <div style="flex:1"><h3 id="panelMapTitle">九州舆图</h3><div class="sub">残响纪元 · 点击城市圆点查看区域情报</div></div>
       <button class="icon-btn" data-close-modal="modalPanelMap" aria-label="关闭"><span data-icon="x"></span></button>
     </div>
     <div class="modal-body" style="display:flex; flex-direction:column; gap:12px">
       <div class="map-card">
-        <div class="map-title"><span>华夏舆图</span><span style="font-size:9px; letter-spacing:.18em; color:var(--paper-faint)">第十七纪元</span></div>
+        <div class="map-title"><span>华夏舆图</span><span style="font-size:9px; letter-spacing:.18em; color:var(--paper-faint)">残响纪元</span></div>
         <div class="map-canvas-wrap">
           <div class="map-canvas" id="mapCanvas"></div>
           <div class="map-zoom" aria-label="地图缩放">
@@ -416,14 +421,8 @@
       </div>
       <button class="icon-btn" id="btnCreateClose" aria-label="关闭"><span data-icon="x"></span></button>
     </div>
-    <div class="wizard-steps" id="wizardSteps">
-      <div class="wstep is-active" data-step="0"><span class="ws-idx">1</span><span class="ws-label">难度</span><span class="ws-line"></span></div>
-      <div class="wstep" data-step="1"><span class="ws-idx">2</span><span class="ws-label">身份</span><span class="ws-line"></span></div>
-      <div class="wstep" data-step="2"><span class="ws-idx">3</span><span class="ws-label">天赋</span><span class="ws-line"></span></div>
-      <div class="wstep" data-step="3"><span class="ws-idx">4</span><span class="ws-label">降临</span><span class="ws-line"></span></div>
-      <div class="wstep" data-step="4"><span class="ws-idx">5</span><span class="ws-label">链接</span></div>
-    </div>
     <div class="wizard-body" id="wizardBody">
+      <div class="wizard-steps" id="wizardSteps"></div>
       <!-- 步骤1 难度 -->
       <div class="wstep-pane is-active" id="wpane-0">
         <div class="section-title"><span class="orn" data-icon="skull"></span>选择降临难度</div>
@@ -455,14 +454,41 @@
           <span class="wn-hint">将显示于状态栏与协议正文 · 名字留空则沿用「无名旅者」</span>
         </div>
       </div>
-      <!-- 步骤3 属性/天赋 -->
-      <div class="wstep-pane" id="wpane-2">
-        <div class="section-title"><span class="orn" data-icon="scale"></span>分配属性 · 天赋觉醒</div>
-        <p class="text-dim" style="font-size:12px; margin-bottom:14px; line-height:1.8">可用自由属性点：<b class="text-gold num" id="wizFreePts">0</b>（来自难度）。点击属性格分配，选择一项天赋。</p>
-        <div class="attr-grid" id="wizAttrGrid" style="margin-bottom:16px"></div>
-        <div class="section-title"><span class="orn" data-icon="hexagon"></span>天赋</div>
-        <div class="talent-grid" id="wizTalentGrid"></div>
+      <!-- 步骤2.5 阵营效忠 (黑城卫专属隐藏步) -->
+      <div class="wstep-pane" id="wpane-F">
+        <div class="section-title"><span class="orn" data-icon="flag"></span>阵营效忠 · 黑城卫专属</div>
+        <p class="text-dim" style="font-size:12px; margin-bottom:10px; line-height:1.8">黑城卫可受遣效力一方诸侯。按 <b>黑城排行</b> 消耗自由属性点：排名越高，耗费越多，新兵配给也越优厚。也可保持只效忠黑城卫。</p>
+        <div class="wiz-pool-row"><span class="fp-label">可用属性点</span><span class="fp-val num" id="wizFactionPts">0</span><button class="btn btn-ghost btn-sm" id="wizFactionRandom" style="margin-left:auto"><span data-icon="dice"></span>随机效忠</button></div>
+        <div class="faction-pick-list" id="wizFactionList"></div>
+        <div id="wizFactionDetail"></div>
       </div>
+
+      <!-- 步骤3 属性/天赋 -->
+      <!-- 步骤3 属性分配 -->
+      <div class="wstep-pane" id="wpane-2">
+        <div class="section-title"><span class="orn" data-icon="scale"></span>分配自由属性点</div>
+        <p class="text-dim" style="font-size:12px; margin-bottom:14px; line-height:1.8">属性点与阵营效忠共用同一池：可在此加点，也可在前一步效忠强势力换取新兵配给。</p>
+        <div class="wiz-pool-row"><span class="fp-label">可用属性点</span><span class="fp-val num" id="wizFreePts">0</span></div>
+        <div class="attr-grid" id="wizAttrGrid"></div>
+      </div>
+
+      <!-- 步骤4 天赋觉醒 (多选 + 自定义 + 随机) -->
+      <div class="wstep-pane" id="wpane-T">
+        <div class="section-title"><span class="orn" data-icon="hexagon"></span>天赋觉醒 · 多选</div>
+        <p class="text-dim" style="font-size:12px; margin-bottom:14px; line-height:1.8">天赋消耗独立的<b>天赋点</b>（数量由难度决定）。品质越高，花费越多、加成越强。可叠加多个天赋，也可自定义。</p>
+        <div class="wiz-pool-row"><span class="fp-label">天赋点</span><span class="fp-val num" id="wizTalentPts">0</span><button class="btn btn-ghost btn-sm" id="wizTalentRandom" style="margin-left:auto"><span data-icon="dice"></span>随机天赋</button></div>
+        <div class="talent-grid" id="wizTalentGrid"></div>
+        <div class="section-title" style="margin-top:14px"><span class="orn" data-icon="sparkles"></span>自定义天赋</div>
+        <div class="wct-form">
+          <input type="text" id="wctName" class="input wct-name" maxlength="8" placeholder="天赋名（≤8字）">
+          <select id="wctQuality" class="input wct-select"><option value="凡阶">凡阶 · 1点</option><option value="灵阶">灵阶 · 2点</option><option value="史诗">史诗 · 4点</option><option value="神话">神话 · 6点</option></select>
+          <select id="wctAttr" class="input wct-select"><option value="">无属性加成</option><option>力量</option><option>敏捷</option><option>智力</option><option>攻击</option><option>防御</option><option>穿透</option><option>幸运</option><option>魅力</option></select>
+          <button class="btn btn-primary btn-sm" id="wctAdd"><span data-icon="plus"></span>添加</button>
+        </div>
+        <div class="wct-selected" id="wctSelected"></div>
+      </div>
+
+      <!-- 步骤5 降临地 -->
       <!-- 步骤4 降临地 -->
       <div class="wstep-pane" id="wpane-3">
         <div class="section-title"><span class="orn" data-icon="map-pin"></span>选择降临地</div>
@@ -479,8 +505,8 @@
             <label class="wt-field"><span>年</span><input type="number" id="wizTimeYear" class="input wt-input" min="1" max="9999" value="1"></label>
             <label class="wt-field"><span>月</span><input type="number" id="wizTimeMonth" class="input wt-input" min="1" max="12" value="1"></label>
             <label class="wt-field"><span>日</span><input type="number" id="wizTimeDay" class="input wt-input" min="1" max="31" value="1"></label>
-            <label class="wt-field"><span>时</span><input type="number" id="wizTimeHour" class="input wt-input" min="0" max="23" value="18"></label>
-            <label class="wt-field"><span>分</span><input type="number" id="wizTimeMin" class="input wt-input" min="0" max="59" value="30"></label>
+            <label class="wt-field"><span>时</span><input type="number" id="wizTimeHour" class="input wt-input" min="0" max="23" value="0"></label>
+            <label class="wt-field"><span>分</span><input type="number" id="wizTimeMin" class="input wt-input" min="0" max="59" value="0"></label>
             <label class="wt-field wt-shichen"><span>时辰</span>
               <select id="wizTimeShichen" class="input wt-input">
                 <option value="子时">子时</option><option value="丑时">丑时</option><option value="寅时">寅时</option><option value="卯时">卯时</option><option value="辰时">辰时</option><option value="巳时">巳时</option><option value="午时">午时</option><option value="未时">未时</option><option value="申时">申时</option><option value="酉时">酉时</option><option value="戌时">戌时</option><option value="亥时">亥时</option>
@@ -781,7 +807,7 @@
       <span class="mh-icon" data-icon="crown"></span>
       <div style="flex:1">
         <h3 id="powerTitle">黑城势力战力榜</h3>
-        <div class="sub">17 席正统 + 1 席禁忌 · 大秦至太平天国 · 黄巾不列排位</div>
+        <div class="sub">十八路黑城势力 · 大秦居首 · 黄巾末位</div>
       </div>
       <button class="icon-btn" data-close-modal="modalPower" aria-label="关闭"><span data-icon="x"></span></button>
     </div>
@@ -880,6 +906,7 @@
 <script src="js/data.js"></script>
 <script src="js/varmodel.js"></script>
 <script src="js/vars.js"></script>
+<script src="js/lorebook-ext.js"></script>
 <script src="js/lorebook.js"></script>
 <script src="js/sillytavern.js"></script>
 <script src="js/app.js"></script>

@@ -421,27 +421,59 @@
   function snapshot(state) {
     if (!state) return "{}";
     var r = state.角色 || {};
+    var A = state.属性 || {};
+    var cur = state.货币 || {};
+    /* 光环/天赋: id 数组 + 详情字典 → 合并为 {名称: {效果}} (用户 schema) */
+    function mergeDict(ids, detail, lib, nameKey, fxKey) {
+      var d = {};
+      (ids || []).forEach(function (id) {
+        var name = id;
+        var fx = (detail && detail[id] && detail[id][fxKey]) || "";
+        if (lib && lib[id]) { name = lib[id][nameKey] || id; if (!fx) fx = lib[id].desc || ""; }
+        d[name] = { 效果: fx };
+      });
+      if (detail) Object.keys(detail).forEach(function (k) {
+        if (!d[k]) d[k] = { 效果: (detail[k] && detail[k][fxKey]) || "" };
+      });
+      return d;
+    }
+    var G = window.GAME_DATA || {};
+    var auraDict = mergeDict(state.光环, state.光环详情, G.AURAS, "name", "效果");
+    var talentDict = mergeDict(state.天赋, state.天赋详情, G.TALENTS, "name", "效果");
+    /* 装备: 名称字典 (详情 + 在穿标记) */
+    var equip = {};
+    if (state.装备 && typeof state.装备 === "object") {
+      Object.keys(state.装备).forEach(function (slot) {
+        var name = state.装备[slot];
+        if (!name) return;
+        equip[name] = Object.assign({ 穿戴中: slot }, (state.装备详情 && state.装备详情[name]) || {});
+      });
+    }
+    if (state.装备详情) Object.keys(state.装备详情).forEach(function (n) {
+      if (!equip[n]) equip[n] = state.装备详情[n];
+    });
+    /* 背包: {物品名: {物品类型, 物品数量, 物品效果}} */
+    var bag = {};
+    (state.背包 || []).forEach(function (b) {
+      var det = (state.背包详情 && state.背包详情[b.ref]) || {};
+      bag[b.ref] = { 物品类型: det.物品类型 || "消耗品", 物品数量: b.qty || 0, 物品效果: det.物品效果 || "" };
+    });
     var out = {
-      角色: {
-        姓名: r.姓名, 位阶: r.位阶, 等级: r.等级, 当前经验值: r.经验, 升级经验值: r.经验上限,
-        职业: r.主职业, 副职业: r.副职业, 战力评价: r.战力评价, 兵种评级: r.兵种评级,
-        自由属性点: r.自由属性点, 货币: r.货币
+      角色属性: {
+        等级: r.等级, 位阶: r.位阶, 当前经验值: r.经验, 升级经验值: r.经验上限,
+        生命值: (state.生命 || {}).当前, 生命值上限: (state.生命 || {}).上限,
+        气力值: (state.气力 || {}).当前, 气力值上限: (state.气力 || {}).上限,
+        职业: r.主职业, 副职业: r.副职业,
+        力量: A.力量, 敏捷: A.敏捷, 智力: A.智力, 攻击: A.攻击, 防御: A.防御, 穿透: A.穿透, 幸运: A.幸运, 魅力: A.魅力,
+        自由属性点: r.自由属性点, 战力评价: r.战力评价, 兵种评级: r.兵种评级
       },
-      属性: state.属性,
-      当前生命值: (state.生命 || {}).当前,
-      生命值上限: (state.生命 || {}).上限,
-      当前气力值: (state.气力 || {}).当前,
-      气力值上限: (state.气力 || {}).上限,
-      生命: state.生命,
-      气力: state.气力,
-      背包: (state.背包 || []).map(function (b) { return { 名称: b.ref, 数量: b.qty }; }),
-      装备: state.装备,
-      /* 动态内容: 详情对象与渲染层读取位置一致 (merge 时写 技能详情/光环详情/天赋详情/任务详情.名称) */
-      技能详情: state.技能详情 || {},
-      光环详情: state.光环详情 || {},
-      天赋详情: state.天赋详情 || {},
-      任务详情: state.任务详情 || {},
-      任务进度: state.任务进度,
+      光环: auraDict,
+      天赋: talentDict,
+      装备: equip,
+      货币: { 铜板: cur.铜钱 || 0, 银两: cur.银两 || 0, 金锭: cur.金锭 || 0 },
+      背包: bag,
+      任务: state.任务详情 || {},
+      技能: state.技能详情 || {},
       周围人物: state.周围人物 || {},
       时间: (state.日期 ? (function (d) {
         var t = d.时辰 || "";

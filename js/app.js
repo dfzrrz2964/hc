@@ -299,6 +299,9 @@
 
   /* ---- 顶部栏 ---- */
   function renderTop() {
+    // 手机状态条 (≤760px 可见): 时间 + 地点/天气
+    const msC = $("#msClock"); if (msC) msC.textContent = A.fmtDate(state.日期) + " · " + A.fmtClock(state.日期);
+    const msL = $("#msLoc"); if (msL) msL.textContent = (state.地点 || "未知") + " · " + (state.天气 || "");
     $("#chipClockVal").textContent = fmtDate(state.日期);
     $("#chipTimeVal").textContent = fmtClock(state.日期);
     $("#chipLocationVal").textContent = state.地点;
@@ -776,7 +779,7 @@
     const rows = GD.POWER_RANK.slice().sort(function (a, b) { return (a.rank === 0 ? 999 : a.rank) - (b.rank === 0 ? 999 : b.rank); });
     t.innerHTML = rows.map(function (r) {
       const cls = r.isTop3 ? " is-top3" : r.isOutside ? " is-outside" : "";
-      const no = r.isOutside ? "＋1" : r.rank;
+      const no = r.rank;
       return '<div class="rank-row' + cls + '" data-rank="' + r.rank + '">' +
         '<span class="rk-no">' + no + "</span>" +
         '<span><span class="rk-name">' + esc(r.name) + ' · ' + esc(r.title) + '</span>' +
@@ -1239,7 +1242,7 @@
   }
 
   function applyProtocol(out) {
-    if (out.sum) pushChronicle("第十七纪元 · 拾遗", out.sum, true);
+    if (out.sum) pushChronicle("残响纪元 · 拾遗", out.sum, true);
   }
 
   /* 渲染全部 */
@@ -1642,7 +1645,7 @@
     $("#btnSend").querySelector("span").innerHTML = ICON("send");
     $("#btnStop").style.display = "none";
 
-    if (out.sum) A.pushChronicle("第十七纪元 · 拾遗", out.sum, true);
+    if (out.sum) A.pushChronicle("残响纪元 · 拾遗", out.sum, true);
 
     // 变量命令 → 写入 state：<set> 行式协议（白名单校验, 弹幕+失败弹窗）
     if (out.setCommands && out.setCommands.length && window.VARS) {
@@ -1783,7 +1786,7 @@
         return;
       }
     }
-    pushChronicle("第十七纪元 · 拾遗", sum, true);
+    pushChronicle("残响纪元 · 拾遗", sum, true);
   }
   function removeLastChronicleSum() {
     for (let i = chronicle.length - 1; i >= 0; i--) {
@@ -1874,35 +1877,80 @@
     difficulty: "normal",
     identity: "survivor",
     alloc: { 力量: 0, 敏捷: 0, 智力: 0, 攻击: 0, 防御: 0, 穿透: 0, 魅力: 0, 幸运: 0 },
-    talent: null,
+    talents: [],          // 多选: 预设天赋 id 数组
+    customTalents: [],    // 自定义天赋: {name, tier, attr}
+    faction: null,        // 黑城卫阵营效忠: POWER_RANK 的 name; null = 仅效忠黑城卫
     land: "changan",
     name: "无名旅者",
     age: "?",
     gender: "?",
-    start: { 年: 1, 月: 1, 日: 1, 时: 18, 分: 30 },
+    start: { 年: 1, 月: 1, 日: 1, 时: 0, 分: 0 },
     linked: false
   };
 
+  /* 动态步骤: 黑城卫身份在「身份」之后插入 阵营效忠 隐藏步 */
+  function wizardStepPanes() {
+    return wizard.identity === "guard" ? ["0", "1", "F", "2", "T", "3", "4"] : ["0", "1", "2", "T", "3", "4"];
+  }
+  const WIZARD_LABELS = { 0: "选择降临难度", 1: "选择三身份体系", F: "黑城卫 · 阵营效忠", 2: "分配自由属性点", T: "天赋觉醒", 3: "选择降临地", 4: "接入神经链接" };
+
+  /* 创建向导点数池: 难度属性点 = 属性分配 + 阵营效忠 共用; 天赋点独立 */
+  function wizTalentSpent() {
+    const w = wizard;
+    const q = GD.TALENT_QUALITY || {};
+    let sum = 0;
+    w.talents.forEach(function (id) {
+      const t = GD.TALENTS.find(x => x.id === id);
+      if (t && q[t.tier]) sum += q[t.tier].cost;
+    });
+    w.customTalents.forEach(function (t) { if (q[t.tier]) sum += q[t.tier].cost; });
+    return sum;
+  }
+  function wizFactionCost() {
+    if (wizard.identity !== "guard" || !wizard.faction) return 0;
+    const f = GD.POWER_RANK.find(x => x.name === wizard.faction);
+    return f ? Math.max(1, 11 - f.rank) : 0;
+  }
+  function wizPoolLeft() {
+    const d = GD.DIFFICULTIES.find(x => x.id === wizard.difficulty);
+    const attrUsed = Object.keys(wizard.alloc).reduce((s, k) => s + wizard.alloc[k], 0);
+    return Math.max(0, d.pts - attrUsed - wizFactionCost());
+  }
+  function wizTalentLeft() {
+    const d = GD.DIFFICULTIES.find(x => x.id === wizard.difficulty);
+    return Math.max(0, d.talentPts - wizTalentSpent());
+  }
+  function renderWizardSteps() {
+    const w = wizard;
+    const panes = wizardStepPanes();
+    $("#wizardSteps").innerHTML = panes.map(function (pid, i) {
+      return '<div class="wstep' + (i < w.step ? " is-done" : i === w.step ? " is-active" : "") + '" data-step="' + i + '">' +
+        '<span class="ws-idx">' + (i + 1) + '</span><span class="ws-label">' + WIZARD_LABELS[pid] + "</span>" +
+        (i < panes.length - 1 ? '<span class="ws-line"></span>' : "") + "</div>";
+    }).join("");
+  }
+
   function renderWizard() {
     const w = wizard;
+    const panes = wizardStepPanes();
+    if (w.step >= panes.length) w.step = panes.length - 1;
+    const paneId = panes[w.step];
 
     // 步骤条
-    $$("#wizardSteps .wstep").forEach(function (s) {
-      const n = Number(s.getAttribute("data-step"));
-      s.classList.toggle("is-done", n < w.step);
-      s.classList.toggle("is-active", n === w.step);
-    });
-    $("#createSub").textContent = "第 " + (w.step + 1) + " / 5 步 · " + ["选择降临难度", "选择三身份体系", "分配属性 · 天赋觉醒", "选择降临地", "接入神经链接"][w.step];
-    $$("#wizardBody .wstep-pane").forEach(function (p) { p.classList.toggle("is-active", p.id === "wpane-" + w.step); });
+    renderWizardSteps();
+    $("#createSub").textContent = "第 " + (w.step + 1) + " / " + panes.length + " 步 · " + WIZARD_LABELS[paneId];
+    $$("#wizardBody .wstep-pane").forEach(function (p) { p.classList.toggle("is-active", p.id === "wpane-" + paneId); });
     $("#btnWizPrev").disabled = w.step === 0;
-    $("#btnWizNext").textContent = w.step === 4 ? (w.linked ? "降临黑城" : "接入神经链接") : "下一步";
+    $("#btnWizNext").textContent = paneId === "4" ? (w.linked ? "降临黑城" : "接入神经链接") : "下一步";
 
     // 只重建当前步骤的面板,避免每次点击都重新拼接整个中国地图 SVG
-    if (w.step === 0) renderWizDiff();
-    if (w.step === 1) renderWizIdentity();
-    if (w.step === 2) renderWizTalentAttr();
-    if (w.step === 3) { ensureLandMap(); renderWizTime(); }
-    if (w.step === 4) updateLinkSummary();
+    if (paneId === "0") renderWizDiff();
+    if (paneId === "1") renderWizIdentity();
+    if (paneId === "2") renderWizAttr();
+    if (paneId === "T") renderWizTalents();
+    if (paneId === "F") renderWizFaction();
+    if (paneId === "3") { ensureLandMap(); renderWizTime(); }
+    if (paneId === "4") updateLinkSummary();
   }
 
   function renderWizDiff() {
@@ -1959,28 +2007,11 @@
     }
   }
 
-  function renderWizTalentAttr() {
+  /* 属性分配步: 自由属性点 + 属性格 (与阵营共用点池显示) */
+  function renderWizAttr() {
     const w = wizard;
-    const d = GD.DIFFICULTIES.find(function (x) { return x.id === w.difficulty; });
     const id = GD.IDENTITIES.find(function (x) { return x.id === w.identity; });
-    // 天赋
-    $("#wizTalentGrid").innerHTML = GD.TALENTS.map(function (x) {
-      return '<div class="talent-pick' + (x.id === w.talent ? " is-selected" : "") + '" data-talent="' + x.id + '">' +
-        '<div class="tp-head"><span class="tp-icon">' + ICON(x.icon) + "</span>" +
-        '<span class="tp-name">' + x.name + "</span>" +
-        '<span class="tp-check">' + ICON("check") + "</span></div>" +
-        '<div class="tp-desc">' + x.desc + "</div></div>";
-    }).join("");
-    $$("#wizTalentGrid .talent-pick").forEach(function (c) {
-      c.addEventListener("click", function () {
-        const tid = c.getAttribute("data-talent");
-        w.talent = w.talent === tid ? null : tid;
-        renderWizard();
-      });
-    });
-    // 属性分配
-    const freePts = d.pts - Object.keys(w.alloc).reduce(function (s, k) { return s + w.alloc[k]; }, 0);
-    $("#wizFreePts").textContent = Math.max(0, freePts);
+    $("#wizFreePts").textContent = Math.max(0, wizPoolLeft());
     $("#wizAttrGrid").innerHTML = Object.keys(id.baseAttr).map(function (k) {
       const base = id.baseAttr[k];
       const val = base + (w.alloc[k] || 0);
@@ -1994,13 +2025,83 @@
         '<div class="a-bar"><i style="width:' + pct + '%"></i></div></div>';
     }).join("");
     window.ICON_HYDRATE($("#wizAttrGrid"));
-    // 属性 +/- : 局部更新,不重建整个面板
-    $$("#wizAttrGrid .mini-btn").forEach(function (btn) {
+    $("#wizAttrGrid .mini-btn").forEach(function (btn) {
       btn.addEventListener("click", function () {
         const key = btn.getAttribute("data-winc") ? btn.getAttribute("data-winc") : btn.getAttribute("data-wdec");
         wizAttrAdjust(key, !!btn.getAttribute("data-winc"));
       });
     });
+  }
+
+  /* 天赋觉醒步: 多选 + 自定义 + 随机 */
+  function renderWizTalents() {
+    const w = wizard;
+    const d = GD.DIFFICULTIES.find(function (x) { return x.id === w.difficulty; });
+    const Q = GD.TALENT_QUALITY;
+    const tLeft = wizTalentLeft();
+    const tp = $("#wizTalentPts");
+    if (tp) tp.textContent = tLeft + " / " + d.talentPts;
+    // 天赋多选: 按品质 rank 降序排列 (神话→史诗→灵阶→凡阶)
+    const pool = GD.TALENTS.slice().sort(function (a, b) { return (Q[b.tier] ? Q[b.tier].rank : 0) - (Q[a.tier] ? Q[a.tier].rank : 0); });
+    $("#wizTalentGrid").innerHTML = pool.map(function (x) {
+      const sel = w.talents.indexOf(x.id) >= 0;
+      const q = Q[x.tier] || { cost: 1, color: "common" };
+      return '<div class="talent-pick' + (sel ? " is-selected" : "") + ' tq-' + q.color + '" data-talent="' + x.id + '">' +
+        '<div class="tp-head"><span class="tp-icon">' + ICON(x.icon) + "</span>" +
+        '<span class="tp-name">' + x.name + "</span>" +
+        '<span class="tp-cost chip" style="font-size:8.5px">' + x.tier + " · " + q.cost + "点</span>" +
+        '<span class="tp-check">' + ICON("check") + "</span></div>" +
+        '<div class="tp-desc">' + x.desc + "</div></div>";
+    }).join("");
+    $$("#wizTalentGrid .talent-pick").forEach(function (c) {
+      c.addEventListener("click", function () {
+        const tid = c.getAttribute("data-talent");
+        const t = GD.TALENTS.find(x => x.id === tid);
+        const cost = (Q[t.tier] || { cost: 1 }).cost;
+        const at = w.talents.indexOf(tid);
+        if (at >= 0) w.talents.splice(at, 1);
+        else {
+          if (cost > wizTalentLeft()) { toast("warn", "天赋点不足", "剩余 " + wizTalentLeft() + " 点·「" + t.name + "」需 " + cost + " 点"); return; }
+          w.talents.push(tid);
+        }
+        renderWizTalents();
+      });
+    });
+    // 自定义天赋表单
+    const addBtn = $("#wctAdd");
+    if (addBtn && !addBtn.dataset.bound) {
+      addBtn.dataset.bound = "1";
+      addBtn.addEventListener("click", function () {
+        const name = ($("#wctName") || {}).value ? $("#wctName").value.trim() : "";
+        const tier = ($("#wctQuality") || {}).value || "凡阶";
+        const attr = ($("#wctAttr") || {}).value || "";
+        if (!name) { toast("warn", "天赋名不能为空", "写一个 1~8 字的天赋名"); return; }
+        if (GD.TALENTS.some(x => x.name === name) || w.customTalents.some(x => x.name === name)) { toast("warn", "名称重复", "已有同名天赋"); return; }
+        const cost = (Q[tier] || { cost: 1 }).cost;
+        if (cost > wizTalentLeft()) { toast("warn", "天赋点不足", "剩余 " + wizTalentLeft() + " 点·需 " + cost + " 点"); return; }
+        w.customTalents.push({ name: name, tier: tier, attr: attr });
+        if ($("#wctName")) $("#wctName").value = "";
+        renderWizTalents();
+      });
+    }
+    renderWizCustomList();
+    // 随机天赋
+    const rndBtn = $("#wizTalentRandom");
+    if (rndBtn && !rndBtn.dataset.bound) {
+      rndBtn.dataset.bound = "1";
+      rndBtn.addEventListener("click", function () {
+        w.talents = [];
+        w.customTalents = [];
+        const shuffled = GD.TALENTS.slice().sort(() => Math.random() - 0.5);
+        shuffled.forEach(function (t) {
+          const cost = (Q[t.tier] || { cost: 1 }).cost;
+          if (cost <= wizTalentLeft()) w.talents.push(t.id);
+        });
+        renderWizTalents();
+        toast("info", "随机天赋", "消耗 " + wizTalentSpent() + " / " + d.talentPts + " 天赋点");
+      });
+    }
+    /* 属性分配已拆分至 renderWizAttr (上一步) */
   }
 
   /* 创建向导降临地 = 中国省会城市 POI (与主地图一致); 旧幻想 ID 兼容回退到默认城市 */
@@ -2052,7 +2153,7 @@
   /* 开局时间 (降临地步骤): 玩家自填 年/月/日 + 24 小时制时分 + 十二时辰 (双向联动) */
   function renderWizTime() {
     const w = wizard;
-    const S = w.start || (w.start = { 年: 1, 月: 1, 日: 1, 时: 18, 分: 30 });
+    const S = w.start || (w.start = { 年: 1, 月: 1, 日: 1, 时: 0, 分: 0 });
     const VM = window.VAR_MODEL || {};
     const fields = [
       ["wizTimeYear", "年"], ["wizTimeMonth", "月"], ["wizTimeDay", "日"], ["wizTimeHour", "时"], ["wizTimeMin", "分"]
@@ -2113,9 +2214,8 @@
     const w = wizard;
     const d = GD.DIFFICULTIES.find(function (x) { return x.id === w.difficulty; });
     const id = GD.IDENTITIES.find(function (x) { return x.id === w.identity; });
-    const used = Object.keys(w.alloc).reduce(function (s, k) { return s + w.alloc[k]; }, 0);
     if (isInc) {
-      if (d.pts - used <= 0) { toast("warn", "属性点不足", "自由属性点已耗尽"); return; }
+      if (wizPoolLeft() <= 0) { toast("warn", "属性点不足", "属性/阵营/天赋 共用点池已耗尽"); return; }
       if ((id.baseAttr[key] + (w.alloc[key] || 0)) >= ATTR_MAX[key]) { toast("warn", "已达上限", key + " 无法继续提升"); return; }
       w.alloc[key] = (w.alloc[key] || 0) + 1;
     } else {
@@ -2129,25 +2229,122 @@
       cell.querySelector(".a-val").textContent = val;
       cell.querySelector(".a-bar i").style.width = Math.max(6, Math.min(100, val / ATTR_MAX[key] * 100)) + "%";
     }
-    const fp = d.pts - Object.keys(w.alloc).reduce(function (s, k) { return s + w.alloc[k]; }, 0);
+    const fp = wizPoolLeft();
     $("#wizFreePts").textContent = Math.max(0, fp);
   }
+
+  /* 自定义天赋已选列表 (含移除) */
+  function renderWizCustomList() {
+    const w = wizard;
+    const Q = GD.TALENT_QUALITY;
+    const box = $("#wctSelected");
+    if (!box) return;
+    const items = w.customTalents.map(function (t, i) {
+      const q = Q[t.tier] || { cost: 1 };
+      return '<span class="wct-chip" data-wct="' + i + '">' + esc(t.name) +
+        '<i class="chip" style="font-size:8px">' + t.tier + "·" + q.cost + "点</i>" +
+        (t.attr ? '<i style="font-style:normal;opacity:.7">' + t.attr + "+" + q.bonus + "</i>" : "") +
+        '<b data-wct-del="' + i + '">' + ICON("x", 9) + "</b></span>";
+    });
+    w.talents.forEach(function (id) {
+      const t = GD.TALENTS.find(x => x.id === id);
+      if (!t) return;
+      const q = Q[t.tier] || { cost: 1 };
+      items.push('<span class="wct-chip">' + esc(t.name) + '<i class="chip" style="font-size:8px">' + t.tier + "·" + q.cost + "点</i></span>");
+    });
+    box.innerHTML = items.length ? items.join("") : "";
+    $$("#wctSelected [data-wct-del]").forEach(function (b) {
+      b.addEventListener("click", function () {
+        w.customTalents.splice(Number(b.getAttribute("data-wct-del")), 1);
+        renderWizCustomList();
+      });
+    });
+    window.ICON_HYDRATE(box);
+  }
+
+  /* 黑城卫 · 阵营效忠 (隐藏步): 按黑城排行消耗属性点, 显示新兵光环与装备 */
+  function renderWizFaction() {
+    const w = wizard;
+    /* 黄巾军位列第十八 (末位): 强度与花费按排名梯度 */
+    const factions = GD.POWER_RANK.slice().sort(function (a, b) { return a.rank - b.rank; });
+    const rankLabel = f => f.rank;
+    const costOf = f => 19 - f.rank;   // 18 档全唯一: 大秦 18 → 黄巾 1
+    $("#wizFactionPts").textContent = wizPoolLeft() + " / " + GD.DIFFICULTIES.find(x => x.id === w.difficulty).pts;
+    $("#wizFactionList").innerHTML =
+
+      factions.map(function (f) {
+        const sel = w.faction === f.name;
+        return '<div class="fr-row' + (sel ? " is-selected" : "") + '" data-faction="' + esc(f.name) + '">' +
+          '<span class="fr-rank">' + rankLabel(f) + "</span>" +
+          '<span class="fr-main"><b>' + f.name + "</b><i>" + f.leader + " · " + f.threat + "</i></span>" +
+          '<span class="fr-cost">' + costOf(f) + "点</span></div>";
+      }).join("");
+    $$("#wizFactionList .fr-row").forEach(function (row) {
+      row.addEventListener("click", function () {
+        const name = row.getAttribute("data-faction");
+        if (!name) { w.faction = null; renderWizFaction(); return; }
+        const f = GD.POWER_RANK.find(x => x.name === name);
+        if (name !== w.faction && costOf(f) > wizPoolLeft()) { toast("warn", "属性点不足", "效忠「" + name + "」需 " + costOf(f) + " 点·剩余 " + wizPoolLeft() + " 点"); return; }
+        w.faction = name;
+        renderWizFaction();
+      });
+    });
+    // 随机效忠: 在可负担的阵营里掷签
+    const rnd = $("#wizFactionRandom");
+    if (rnd && !rnd.dataset.bound) {
+      rnd.dataset.bound = "1";
+      rnd.addEventListener("click", function () {
+        const affordable = factions.filter(f => costOf(f) <= wizPoolLeft());
+        const f = affordable[Math.floor(Math.random() * affordable.length)];
+        w.faction = f ? f.name : null;
+        renderWizFaction();
+      });
+    }
+    // 新兵包详情
+    const f = GD.POWER_RANK.find(x => x.name === w.faction);
+    const detail = $("#wizFactionDetail");
+    if (!detail) return;
+    if (!f) {
+      detail.innerHTML = '<p class="text-dim" style="font-size:11px; line-height:1.8">未效忠任何阵营——只领黑城卫的份例：「黑城威仪」光环 + 制式皮甲。选择上方阵营可换取该势力的新兵配给。</p>';
+      return;
+    }
+    const pack = GD.factionRecruit(f);
+    detail.innerHTML =
+      '<div class="fr-pack">' +
+        '<div class="frp-sec"><span class="frp-cap">' + ICON("sparkles") + "新兵光环</span>" +
+          '<div class="frp-item"><b>' + esc(pack.aura.name) + "</b><p>" + esc(pack.aura.desc) + "</p></div></div>" +
+        '<div class="frp-sec"><span class="frp-cap">' + ICON("sword") + "新兵装备（入列配发）</span>" +
+          pack.gear.map(function (g) {
+            return '<div class="frp-item"><b>' + esc(g.name) + '</b><i class="chip" style="font-size:8px">' + g.quality + " · " + g.type + "</i><p>" + esc(g.desc) + (g.atk ? " 攻击+" + g.atk + "。" : "") + "</p></div>";
+          }).join("") + "</div>" +
+        '<div class="frp-sec"><span class="frp-cap">' + ICON("coin") + "初始声望</span>" +
+          '<div class="frp-item"><p>' + f.name + " 声望 +" + pack.reputation + "（新兵份例）</p></div></div>" +
+      "</div>";
+    window.ICON_HYDRATE(detail);
+  }
+
+  /* 创建向导降临地 = 中国省会城市 POI (与主地图一致); 旧幻想 ID 兼容回退到默认城市 */
 
   function updateLinkSummary() {
     const w = wizard;
     const d = GD.DIFFICULTIES.find(function (x) { return x.id === w.difficulty; });
     const id = GD.IDENTITIES.find(function (x) { return x.id === w.identity; });
-    $("#linkSummary").textContent = (w.name || "无名旅者") + " · " + id.name + " · " + d.name + " · 天赋" + (w.talent ? "「" + (GD.TALENTS.find(function (t) { return t.id === w.talent; }) || {}).name + "」" : "未选择") + " · 降临「" + landCityById(w.land).name + "」";
+    $("#linkSummary").textContent = (w.name || "无名旅者") + " · " + id.name + " · " + d.name + " · 天赋" + (function () {
+        const names = w.talents.map(function (id2) { const t = GD.TALENTS.find(x => x.id === id2); return t ? t.name : id2; }).concat(w.customTalents.map(t => t.name));
+        return names.length ? "「" + names.join("/") + "」" : "未选择";
+      })() + (w.identity === "guard" ? " · 效忠「" + (w.faction || "无归属（黑城卫）") + "」" : "") + " · 降临「" + landCityById(w.land).name + "」";
   }
 
   function wizardNext() {
     const w = wizard;
-    if (w.step === 4) {
+    const panes = wizardStepPanes();
+    if (panes[w.step] === "4") {          // 链接步 (动态位置: 黑城卫在第 7 步)
       if (!w.linked) { startLink(); return; }
       finalizeCharacter();
       return;
     }
     w.step++;
+    if (w.step >= panes.length) w.step = panes.length - 1;
     renderWizard();
   }
 
@@ -2197,14 +2394,13 @@
     const d = GD.DIFFICULTIES.find(function (x) { return x.id === w.difficulty; });
     const id = GD.IDENTITIES.find(function (x) { return x.id === w.identity; });
     const land = landCityById(w.land); // 降临地 = 中国省会城市 (旧幻想 ID 自动回退默认)
-    const talent = GD.TALENTS.find(function (x) { return x.id === w.talent; });
+    // 多选天赋 (预设 + 自定义); 变量 talent 保留为第一个预设 (兼容后续引用)
 
     const s = GD.defaultStat();
     s.角色.姓名 = (w.name || "").trim() || "无名旅者";
     s.角色.年龄 = (w.age || "").trim() || "?";
     s.角色.性别 = w.gender || "?";
     s.角色.身份 = id.name;
-    s.角色.主职业 = id.class;
     s.角色.位阶 = "猎奴";
     s.角色.自由属性点 = 0;
     // 应用身份基础属性 + 分配点
@@ -2214,24 +2410,57 @@
     s.生命 = { 当前: id.hp, 上限: id.hp };
     s.气力 = { 当前: id.stamina, 上限: id.stamina };
     s.光环 = id.aura ? [id.aura] : ["hunter"];
-    if (id.faction) { s.阵营.名称 = id.faction; s.阵营.立场 = "中立"; }
-    if (talent) {
-      s.天赋 = [talent.id];
-      if (talent.apply) talent.apply(s);
+    /* 黑城卫是总称而非势力: 不效忠任何阵营时保持「无归属」 */
+    // 天赋多选: 预设 id 数组 + 自定义写入 天赋详情
+    s.天赋 = w.talents.slice();
+    w.talents.forEach(function (id) {
+      const t = GD.TALENTS.find(x => x.id === id);
+      if (t && t.apply) t.apply(s);
+    });
+    if (!s.天赋详情 || typeof s.天赋详情 !== "object") s.天赋详情 = {};
+    const Q = GD.TALENT_QUALITY || {};
+    w.customTalents.forEach(function (t) {
+      const q = Q[t.tier] || { bonus: 2 };
+      if (t.attr && s.属性[t.attr] != null) s.属性[t.attr] += q.bonus;
+      s.天赋详情[t.name] = { 效果: (t.attr ? t.attr + " +" + q.bonus + "；" : "") + t.tier + "自定义天赋" };
+    });
+    // 黑城卫 · 阵营效忠: 阵营/声望/新兵光环/新兵装备
+    if (w.identity === "guard") {
+      const f = w.faction ? GD.POWER_RANK.find(x => x.name === w.faction) : null;
+      if (f) {
+        const pack = GD.factionRecruit(f);
+        s.阵营.名称 = f.name;
+        s.阵营.立场 = f.stance;
+        s.阵营.声望 = pack.reputation;
+        s.光环.push(pack.aura.id);
+        if (!s.光环详情 || typeof s.光环详情 !== "object") s.光环详情 = {};
+        s.光环详情[pack.aura.id] = { 效果: pack.aura.desc };
+        if (!s.背包详情 || typeof s.背包详情 !== "object") s.背包详情 = {};
+        pack.gear.forEach(function (g, gi) {
+          s.背包.push({ id: "fg" + f.rank + "_" + gi, ref: g.name, qty: 1 });
+          s.背包详情[g.name] = { 物品类型: g.type, 物品效果: g.desc + (g.atk ? " 攻击+" + g.atk : "") };
+          if (g.type === "武器" && !s.装备.武器1) {
+            s.装备.武器1 = g.name;
+            s.装备详情[g.name] = { 装备类型: "武器", 装备品质: g.quality, 基础属性: { 攻击: g.atk }, 耐久度: { 当前: g.dura, 上限: g.dura } };
+          }
+        });
+      }
     }
     s.地点 = land.name;
     // 开局时间: 玩家自填 (年/月/日 + 24 小时制时分 → 十二时辰), 默认 黑城纪年1年1月1日 酉时(18:30)
     const st = w.start || {};
     const VM = window.VAR_MODEL || {};
-    const shichen = VM.hourToShichen ? VM.hourToShichen(Number(st.时) || 18) : "酉时";
+    const shichen = VM.hourToShichen ? VM.hourToShichen(st.时 != null ? Number(st.时) : 0) : "子时";
     s.日期 = {
       年: Math.max(1, Math.min(9999, Number(st.年) || 1)),
       月: Math.max(1, Math.min(12, Number(st.月) || 1)),
       日: Math.max(1, Math.min(31, Number(st.日) || 1)),
       时辰: shichen,
-      时: Number(st.时) || 18,
-      分: Number(st.分) || 0
+      时: (st.时 != null ? Math.min(23, Math.max(0, Number(st.时))) : 0),
+      分: (st.分 != null ? Math.min(59, Math.max(0, Number(st.分))) : 0)
     };
+    /* 位阶按开局身份: 人类=猎奴 / 黑城势力=黑城卫 / 变异生物=异种 */
+    s.角色.位阶 = id.id === "guard" ? "黑城卫" : id.id === "mutant" ? "异种" : "猎奴";
     s.角色.战力评价 = A.powerLabel(s.角色);
     state = s;
     A.state = s;
@@ -2256,7 +2485,7 @@
       "【信息统计面板】",
       "种族：" + id.name,
       "所在地：" + land.name + "（" + (land.prov || "") + "）",
-      "选择天赋：" + (talent ? talent.name : "未选择"),
+      "选择天赋：" + (w.talents.length || w.customTalents.length ? w.talents.map(function (id) { const t = GD.TALENTS.find(x => x.id === id); return t ? t.name : id; }).concat(w.customTalents.map(t => t.name)).join("/") : "未选择"),
       "初始属性点：[力量 " + s.属性.力量 + "] [敏捷 " + s.属性.敏捷 + "] [智力 " + s.属性.智力 + "] [魅力 " + s.属性.魅力 + "] [幸运 " + s.属性.幸运 + "]"
     ].join("\n");
     appendAIMsg(GD.PROLOGUE[0] + "\n\n" + panel + "\n\n末日降临，游戏开始...", { drop: true, instant: true }); // 序章直接显示,不流式
@@ -2271,12 +2500,14 @@
     wizard.difficulty = "normal";
     wizard.identity = "survivor";
     wizard.alloc = { 力量: 0, 敏捷: 0, 智力: 0, 攻击: 0, 防御: 0, 穿透: 0, 魅力: 0, 幸运: 0 };
-    wizard.talent = null;
+    wizard.talents = [];
+    wizard.customTalents = [];
+    wizard.faction = null;
     wizard.land = "北京";
     wizard.name = "无名旅者";
     wizard.age = "?";
     wizard.gender = "?";
-    wizard.start = { 年: 1, 月: 1, 日: 1, 时: 18, 分: 30 };
+    wizard.start = { 年: 1, 月: 1, 日: 1, 时: 0, 分: 0 };
     wizard.linked = false;
   }
 
@@ -2884,6 +3115,7 @@
     $("#btnSideInfo").addEventListener("click", function () {
       document.body.classList.toggle("right-open");
     });
+    $("#rightDrawerBackdrop").addEventListener("click", function () { document.body.classList.remove("right-open"); });
     // 世界快照弹窗内部操作 (入口在右栏「世界快照」磁贴)
     $("#btnSnapNow").addEventListener("click", function () {
       takeWorldSnap("手动打点");
@@ -3878,7 +4110,7 @@
     $("#titleScreen").classList.remove("is-visible");
     A.openModal("modalCreate");
     renderWizard();
-    toast("info", "欢迎来到黑城", "第十七纪元 · 完成神经链接以开始");
+    toast("info", "欢迎来到黑城", "残响纪元 · 完成神经链接以开始");
   }
 
   /* 从标题画面进入「继续游戏」→ 会话记录列表 */

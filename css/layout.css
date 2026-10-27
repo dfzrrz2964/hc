@@ -10,6 +10,7 @@
     "topbar topbar topbar"
     "left   center right";
   height: 100vh;
+  height: 100dvh;   /* 移动端浏览器地址栏安全高度 */
   width: 100vw;
 }
 
@@ -233,6 +234,8 @@ body.left-open .side-overlay.left .panel { transform: translateX(0); }
 }
 
 /* ================= 响应式 ================= */
+.drawer-backdrop { display: none; }   /* 右栏抽屉遮罩: 仅窄屏抽屉打开时显示 */
+
 @media (max-width: 1380px) {
   :root { --side-w: 280px; }
   .topbar-brand { min-width: 170px; }
@@ -247,7 +250,7 @@ body.left-open .side-overlay.left .panel { transform: translateX(0); }
       "center";
   }
   .left-col { display: none; }
-  /* 右栏在窄屏改为滑出抽屉 (顶栏「情报」按钮开关) */
+  /* 右栏在窄屏改为滑出抽屉 (顶栏「情报」按钮开关) + 遮罩 */
   .right-col {
     position: fixed;
     top: var(--topbar-h);
@@ -261,15 +264,60 @@ body.left-open .side-overlay.left .panel { transform: translateX(0); }
     background: var(--ink-1);
   }
   body.right-open .right-col { transform: translateX(0); }
+  .drawer-backdrop {
+    display: block;
+    position: fixed;
+    inset: 0;
+    z-index: 88;
+    background: rgba(4, 3, 7, 0.55);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity var(--t-med);
+  }
+  body.right-open .drawer-backdrop { opacity: 1; pointer-events: auto; }
   #btnSideInfo { display: flex; }
   #btnSideStatus { display: flex; }
   .topbar-center { justify-content: flex-start; gap: var(--sp-2); overflow: hidden; }
 }
 
+/* ================= 手机 (≤760px) ================= */
+@media (max-width: 760px) {
+  /* 顶部栏放不下四个芯片 → 时间/地点移入正文顶部的状态条 */
+  .topbar-center { display: none; }
+  .topbar-brand { min-width: 0; }
+  .topbar-actions { min-width: 0; gap: 4px; }
+  .mobile-status {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 4px 14px;
+    flex: none;
+    padding: 8px 16px 0;
+    font-size: 11px;
+    letter-spacing: 0.14em;
+    color: var(--paper-faint);
+  }
+  .mobile-status .ms-item { display: inline-flex; align-items: center; gap: 5px; }
+  .mobile-status .ms-icon { color: var(--gold); display: inline-flex; }
+  .mobile-status .ms-icon svg { width: 12px; height: 12px; }
+  .mobile-status .ms-item b { color: var(--paper-dim); font-weight: 400; }
+  /* 向导与弹窗在手机上单列/收窄 */
+  .modal-layer .modal { max-height: min(92dvh, 780px); }
+}
+
 @media (max-width: 640px) {
-  .topbar { padding: 0 var(--sp-3); gap: var(--sp-2); }
+  .topbar { padding: 0 var(--sp-2); gap: var(--sp-2); }
   .topbar-brand .brand-sub { display: none; }
-  .topbar-brand .brand-name { font-size: 15px; letter-spacing: 0.3em; }
+  .topbar-brand .brand-name { font-size: 14px; letter-spacing: 0.24em; }
+  .topbar-brand .brand-seal { width: 28px; height: 28px; }
   .topbar-chip .chip-icon { display: none; }
-  .topbar-chip { padding: 4px 10px; font-size: 11px; }
+  .topbar-chip { padding: 3px 8px; font-size: 10.5px; }
+  .topbar-actions .icon-btn { width: 32px; height: 32px; }
+  .topbar-actions .icon-btn svg { width: 16px; height: 16px; }
+  .mobile-status { padding: 6px 12px 0; font-size: 10.5px; gap: 3px 10px; }
+}
+
+@media (max-width: 400px) {
+  .topbar-brand .brand-text { display: none; }   /* 只留印章, 给按键腾位 */
+  .topbar-actions .icon-btn { width: 30px; height: 30px; }
 }

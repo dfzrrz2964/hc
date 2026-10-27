@@ -300,22 +300,31 @@
   ST.matchLorebook = function (text, books, max) {
     max = max || 8;
     var hits = [];
-    if (!text) return hits;
     var seen = {};
-    function add(b, matchedKey) {
+    var keyedCount = 0;
+    function add(b, matchedKey, isConst) {
       var k = (b.id || "") + "|" + (b.comment || "") + "|" + (b.content || "");
-      if (seen[k] || hits.length >= max) return;
+      if (seen[k]) return;
+      if (!isConst && keyedCount >= max) return;   // max 只约束关键词命中, 恒定条目全量注入
       seen[k] = true;
+      if (!isConst) keyedCount++;
       hits.push(Object.assign({}, b, { matchedKey: matchedKey || "" }));
     }
-    // ① 恒定注入条目
+    if (!text) {                                    // 空文本也注入恒定条目
+      books.filter(function (b) { return b.constant; })
+        .sort(function (a, b2) { return (a.order || 100) - (b2.order || 100); })
+        .forEach(function (b) { add(b, "", true); });
+      return hits;
+    }
+    // ① 恒定注入条目 (不受 max 上限约束: 规范/世界观恒定条目必须全量注入)
     books.filter(function (b) { return b.constant; })
       .sort(function (a, b2) { return (a.order || 100) - (b2.order || 100); })
-      .forEach(function (b) { add(b, ""); });
-    // ② 关键词命中
-    for (var i = 0; i < books.length && hits.length < max; i++) {
+      .forEach(function (b) { add(b, "", true); });
+    // ② 关键词命中 (独立限额 max 条)
+    for (var i = 0; i < books.length; i++) {
       var b = books[i];
       if (b.constant) continue;
+      if (keyedCount >= max) break;
       var keys = b.keys || [];
       var sec = b.secondaryKeys || [];
       for (var k = 0; k < keys.length; k++) {
@@ -323,7 +332,7 @@
         if (!key || text.indexOf(key) === -1) continue;
         // selective: 副键全部命中才注入
         if (b.selective && sec.length && !sec.every(function (s) { return !s || text.indexOf(s) !== -1; })) continue;
-        add(b, key);
+        add(b, key, false);
         break;
       }
     }
@@ -386,7 +395,7 @@
     ST.getPromptModules(presetSettings).forEach(function (pm) {
       parts.push("【" + pm.label + "】" + pm.content);
     });
-    parts.push("【世界观】黑城：各朝代残响构成的黑夜大陆，第十七纪元。火器被禁，机关与奇术是力量。人心比怪物更危险。");
+    parts.push("【世界观】黑城：各朝代残响构成的黑夜大陆，残响纪元。火器被禁，机关与奇术是力量。人心比怪物更危险。");
 
     // 变量操作协议 (<set> 行式): 白名单见世界书【变量规范】, 命令由前端逐行校验执行
     if (window.VAR_MODEL) {
@@ -450,18 +459,44 @@
       } catch (e) { out.vars = null; }
     }
 
-    // <events>长期记忆</events> → 分层记忆的大总结 (可选)
-    var ev = text.match(/<events\s*>([\s\S]*?)<\/events\s*>/i);
-    if (ev) out.events = ev[1].trim();
-
-    // 正文: 优先取 <maintext>..</maintext>; 缺失开标签时按 </maintext> 位置截取
-    var mt = text.match(/<maintext\s*>([\s\S]*?)<\/maintext\s*>/i);
-    var bodyText = "";
-    if (mt) bodyText = mt[1];
-    else {
-      var closeIdx = text.indexOf("</maintext");
-      bodyText = closeIdx >= 0 ? text.slice(0, closeIdx) : text;
+    // <events>长期记忆</events> → 大总结 (弱模型会在规划里提到标签名 → 取最后一个开标签到闭标签)
+    function lastTagBlock(tag) {
+      var close = text.lastIndexOf("</" + tag + ">");
+      if (close < 0) return "";
+      var open = text.lastIndexOf("<" + tag + ">", close);
+      if (open < 0) return "";
+      return text.slice(open + tag.length + 2, close).trim();
     }
+    out.events = lastTagBlock("events");
+
+    // 正文提取 (抗弱模型):
+    // ① 多个 <maintext> 开标签 + 一个闭标签 → 取「最后一个开标签」之后的内容
+    //    (弱模型会先在正文里写规划/复述标签名, 再开真正的正文块)
+    // ② 常规: 首个开标签到首个闭标签
+    // ③ 无开标签: 按 </maintext> 位置截取; 全无 → 整段
+    var openIdx = [];
+    var openRe = /<maintext\s*>/gi;
+    var mm;
+    while ((mm = openRe.exec(text)) !== null) openIdx.push(mm.index + mm[0].length);
+    var closeIdx = text.lastIndexOf("</maintext");
+    var bodyText = "";
+    if (openIdx.length && closeIdx > openIdx[openIdx.length - 1]) {
+      bodyText = text.slice(openIdx[openIdx.length - 1], closeIdx);   // 最后一个正文块
+    } else if (openIdx.length === 1 && openIdx[0] < text.length) {
+      bodyText = text.slice(openIdx[0]);                              // 未闭合: 开标签之后全取
+    } else if (mt) {
+      bodyText = mt[1];
+    } else if (closeIdx >= 0) {
+      bodyText = text.slice(0, closeIdx);
+    } else {
+      bodyText = text;
+    }
+    /* 思考标记/思考块剥离 (DeepSeek <|begin_of_thinking|> / <think> 等) */
+    bodyText = bodyText
+      .replace(/<\|begin_of_thinking\|>[\s\S]*?<\|end_of_thinking\|>/gi, "")
+      .replace(/<\|[a-z_]+\|>/gi, "")
+      .replace(/<(think|thinking)>[\s\S]*?<\/(think|thinking)>/gi, "")
+      .replace(/<\|begin_of_thinking\|>/gi, "");
 
     var optRe = /<option\b([^>]*)>([\s\S]*?)<\/option\s*>/gi;
     var m;
@@ -475,8 +510,7 @@
       if (opt.text) out.options.push(opt);
     }
 
-    var sm = text.match(/<sum\s*>([\s\S]*?)<\/sum\s*>/i);
-    if (sm) out.sum = sm[1].trim();
+    out.sum = lastTagBlock("sum");
 
     // 清理残余标签(防模型不守协议) — 基于正文区, 移除一切协议标签, 折叠多余空行
     out.maintext = bodyText

@@ -393,6 +393,7 @@ input[type="range"].slider::-moz-range-thumb {
   position: relative;
   width: min(92vw, 560px);
   max-height: min(86vh, 780px);
+  max-height: min(86dvh, 780px);
   display: flex;
   flex-direction: column;
   background:

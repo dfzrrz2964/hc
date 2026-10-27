@@ -24,7 +24,7 @@
     { rank: 15, name: "大辽", title: "上京皮室军", leader: "太祖·耶律阿保机", seat: "上京临潢府", power: 52, threat: "割据级", stance: "敌视", desc: "草原狼骑，来去如风。皮室军骑射无双，常劫掠商路。与西夏结盟，与大金世仇，逐水草而居，无固定疆界。", icon: "flag" },
     { rank: 16, name: "大金", title: "会宁铁浮屠", leader: "太祖·完颜阿骨打", seat: "会宁府", power: 49, threat: "割据级", stance: "敌视", desc: "铁浮屠重骑人马俱甲，冲锋时如钢铁洪流。曾两度攻破大辽上京，如今厉兵秣马，觊觎中原。", icon: "flag" },
     { rank: 17, name: "西夏", title: "兴庆铁鹞子", leader: "景宗·李元昊", seat: "兴庆府", power: 46, threat: "割据级", stance: "中立", desc: "以党项铁鹞子与「连环弩阵」称雄西北。立国虽晚，却精于守城与机关术，是黑城西陲最难啃的硬骨头。", icon: "flag" },
-    { rank: 0, name: "黄巾军", title: "太平道·瘟疫之源", leader: "大贤良师·张角", seat: "苍天巨野", power: 41, threat: "禁忌级", stance: "毁灭", isOutside: true, desc: "「苍天已死，黄天当立。」黄巾军不列十七席排位——因为瘟疫本身就是他们的军势。太平道以符水咒术散播「黄天疫」，凡染疫者皆化为行尸走肉般的黄巾力士。黑城诸势力忌惮瘟疫甚于大秦，曾联手「清野」，却始终未能剿灭其源头。你体内的每一缕异变，或许都与此有关。", icon: "skull" }
+    { rank: 18, name: "黄巾军", title: "太平道·瘟疫之源", leader: "大贤良师·张角", seat: "苍天巨野", power: 41, threat: "禁忌级", stance: "毁灭", isOutside: true, desc: "「苍天已死，黄天当立。」黄巾军位列第十八席——因为瘟疫本身就是他们的军势。太平道以符水咒术散播「黄天疫」，凡染疫者皆化为行尸走肉般的黄巾力士。黑城诸势力忌惮瘟疫甚于大秦，曾联手「清野」，却始终未能剿灭其源头。你体内的每一缕异变，或许都与此有关。", icon: "skull" }
   ];
 
   /* ---------- 身份体系 (初始属性以 0 级猎奴为基点) ---------- */
@@ -37,21 +37,78 @@
 
   /* ---------- 难度 ---------- */
   const DIFFICULTIES = [
-    { id: "easy", name: "简单", pts: 80, desc: "天命眷顾 · 险境逢生", color: "jade" },
-    { id: "normal", name: "普通", pts: 50, desc: "众生皆苦 · 唯力是凭", color: "gold" },
-    { id: "hard", name: "困难", pts: 30, desc: "黑城无情 · 步步杀机", color: "crimson" },
-    { id: "nightmare", name: "噩梦", pts: 10, desc: "苍天已死 · 黄天当立", color: "crimson" }
+    { id: "easy", name: "简单", pts: 80, talentPts: 10, desc: "天命眷顾 · 险境逢生", color: "jade" },
+    { id: "normal", name: "普通", pts: 50, talentPts: 8, desc: "众生皆苦 · 唯力是凭", color: "gold" },
+    { id: "hard", name: "困难", pts: 30, talentPts: 6, desc: "黑城无情 · 步步杀机", color: "crimson" },
+    { id: "nightmare", name: "噩梦", pts: 10, talentPts: 4, desc: "苍天已死 · 黄天当立", color: "crimson" }
   ];
 
-  /* ---------- 天赋池 ---------- */
+  /* ---------- 天赋品质 (品质决定花费点数与属性加成幅度) ---------- */
+  const TALENT_QUALITY = {
+    凡阶: { cost: 1, color: "common", bonus: 2, rank: 0 },
+    灵阶: { cost: 2, color: "fine", bonus: 3, rank: 1 },
+    史诗: { cost: 4, color: "rare", bonus: 4, rank: 2 },
+    神话: { cost: 6, color: "epic", bonus: 6, rank: 3 }
+  };
+
+  /* ---------- 天赋池 (按品质排列; 多选, 消耗天赋点) ---------- */
   const TALENTS = [
     { id: "ironbone", name: "铁骨", icon: "shield", tier: "凡阶", desc: "生命上限 +20，受到的物理伤害 -8%", apply: s => { s.生命.上限 += 20; s.生命.当前 = s.生命.上限; } },
-    { id: "swift", name: "迅捷", icon: "wind", tier: "凡阶", desc: "敏捷 +3，气力回复速度 +15%", apply: s => { s.属性.敏捷 += 3; } },
-    { id: "keenmind", name: "慧心", icon: "brain", tier: "凡阶", desc: "智力 +3，经验获取 +12%", apply: s => { s.属性.智力 += 3; } },
-    { id: "favored", name: "天眷", icon: "star", tier: "凡阶", desc: "幸运 +3，稀有掉落率 +8%", apply: s => { s.属性.幸运 += 3; } },
-    { id: "predator", name: "猎杀本能", icon: "eye", tier: "灵阶", desc: "对受伤目标攻击 +15%，穿透 +2", apply: s => { s.属性.穿透 += 2; } },
-    { id: "undying", name: "不灭之躯", icon: "heart", tier: "灵阶", desc: "生命低于 30% 时，每秒回复 2% 生命", apply: () => {} }
+    { id: "sturdy", name: "强健", icon: "sword", tier: "凡阶", desc: "力量 +2，搬动重物不易力竭", apply: s => { s.属性.力量 += 2; } },
+    { id: "lissome", name: "轻身", icon: "wind", tier: "凡阶", desc: "敏捷 +2，翻越瓦砾如履平地", apply: s => { s.属性.敏捷 += 2; } },
+    { id: "lucky", name: "天幸", icon: "star", tier: "凡阶", desc: "幸运 +2，总能捡到有用的东西", apply: s => { s.属性.幸运 += 2; } },
+    { id: "thickskin", name: "厚皮", icon: "shield", tier: "凡阶", desc: "防御 +2，皮糙肉厚耐打", apply: s => { s.属性.防御 += 2; } },
+    { id: "swift", name: "迅捷", icon: "wind", tier: "灵阶", desc: "敏捷 +3，气力回复速度 +15%", apply: s => { s.属性.敏捷 += 3; } },
+    { id: "keenmind", name: "慧心", icon: "brain", tier: "灵阶", desc: "智力 +3，经验获取 +12%", apply: s => { s.属性.智力 += 3; } },
+    { id: "favored", name: "天眷", icon: "star", tier: "灵阶", desc: "幸运 +3，稀有掉落率 +8%", apply: s => { s.属性.幸运 += 3; } },
+    { id: "keeneye", name: "鹰眼", icon: "eye", tier: "灵阶", desc: "穿透 +2，洞察破绽与危险", apply: s => { s.属性.穿透 += 2; } },
+    { id: "predator", name: "猎杀本能", icon: "eye", tier: "史诗", desc: "对受伤目标攻击 +15%，穿透 +4", apply: s => { s.属性.穿透 += 4; } },
+    { id: "undying", name: "不灭之躯", icon: "heart", tier: "史诗", desc: "生命低于 30% 时，每秒回复 2% 生命", apply: s => { s.生命.上限 += 10; s.生命.当前 = s.生命.上限; } },
+    { id: "titan", name: "蛮神之力", icon: "hammer", tier: "神话", desc: "力量 +5，攻击 +5，蛮力骇人", apply: s => { s.属性.力量 += 5; s.属性.攻击 += 5; } },
+    { id: "destiny", name: "天命之子", icon: "crown", tier: "神话", desc: "全属性 +2，命运仍在书写", apply: s => { Object.keys(s.属性).forEach(k => { s.属性[k] += 2; }); } },
+    { id: "ironwall", name: "铁壁", icon: "shield", tier: "灵阶", desc: "防御 +3，气力回复速度 +10%", apply: s => { s.属性.防御 += 3; } },
+    { id: "stoneheart", name: "石心", icon: "heart", tier: "灵阶", desc: "气力值上限 +10，连续作战能力提升", apply: s => { s.气力.上限 += 10; s.气力.当前 = s.气力.上限; } },
+    { id: "deft", name: "巧手", icon: "gift", tier: "灵阶", desc: "幸运 +2，敏捷 +1，搜刮与制作皆利", apply: s => { s.属性.幸运 += 2; s.属性.敏捷 += 1; } },
+    { id: "swordsman", name: "剑术大师", icon: "sword", tier: "史诗", desc: "攻击 +4，穿透 +2，招式精纯", apply: s => { s.属性.攻击 += 4; s.属性.穿透 += 2; } },
+    { id: "ninelives", name: "九命", icon: "heart", tier: "史诗", desc: "生命上限 +40，濒死时韧性惊人", apply: s => { s.生命.上限 += 40; s.生命.当前 = s.生命.上限; } },
+    { id: "blackcity", name: "黑城亲和", icon: "skull", tier: "神话", desc: "灵视 +3，魅力 +3，黑城压制对你失效大半", apply: s => { s.角色.灵视 = (s.角色.灵视 || 0) + 3; s.属性.魅力 += 3; } }
   ];
+
+  /* ---------- 阵营新兵包 (黑城卫阵营效忠步骤): 按排行生成 光环/装备/声望 ---------- */
+  const FACTION_GEAR = {
+    大秦: "青铜秦剑", 大唐: "唐制横刀", 大汉: "环首汉刀", 大宋: "精铸朴刀",
+    大清: "八旗战刀", 大元: "蒙古弯刀", 太平天国: "太平斩马刀", 大隋: "隋制马槊",
+    "三国·魏": "青州长戟", "三国·吴": "解烦环刀", "三国·蜀": "白耳长刀",
+    大晋: "晋制环首刀", 大楚: "楚式短剑", 大辽: "辽东弯刀", 大金: "狼牙铁棒",
+    西夏: "西夏腰刀", 黄巾军: "黄巾柴刀"
+  };
+  function factionRecruit(f) {
+    /* 新兵包强度按黑城排名梯度: 排名越前, 光环/装备/声望越优厚 (黄巾 rank 18 最末最弱) */
+    const rank = f.isOutside ? 18 : f.rank;
+    const TIERS = [
+      { min: 1,  max: 3,  auraBonus: 10, rep: 15, quality: "绿色", atk: 4, dura: 45 },   // 前三: 灭世/霸业级
+      { min: 4,  max: 8,  auraBonus: 8,  rep: 12, quality: "绿色", atk: 3, dura: 40 },   // 王权级
+      { min: 9,  max: 13, auraBonus: 6,  rep: 8,  quality: "白色", atk: 3, dura: 35 },   // 割据级
+      { min: 14, max: 17, auraBonus: 4,  rep: 5,  quality: "白色", atk: 2, dura: 30 },   // 末席诸候
+      { min: 18, max: 18, auraBonus: 2,  rep: 2,  quality: "白色", atk: 1, dura: 25 }    // 黄巾 (末位)
+    ];
+    const t = TIERS.find(x => rank >= x.min && rank <= x.max) || TIERS[3];
+    function WEAPON_NAME(faction, quality) { return (FACTION_GEAR[faction.name] || (faction.name + "佩刀")) + (quality === "绿色" ? "·良" : ""); }
+    return {
+      aura: {
+        id: "fac_" + rank,
+        name: f.name + "·新兵光环",
+        desc: "军势加身：对同阵营 NPC 初始好感 +" + t.auraBonus + "，威慑判定占优；叛离阵营后光环失效。(" + f.name + "位列第" + rank + ")"
+      },
+      auraBonus: t.auraBonus,
+      reputation: t.rep,
+      gear: [
+        { name: f.name + "腰牌", type: "信物", quality: t.quality, desc: "刻有" + f.name + "徽记的身份腰牌，同阵营关卡查验放行。" },
+        { name: WEAPON_NAME(f, t.quality), type: "武器", quality: t.quality, atk: t.atk, dura: t.dura, desc: "入列时配发的新兵武器，" + (t.quality === "绿色" ? "成色优良。" : "量产凡品，但比凡铁锋利。") },
+        { name: f.name + "行军粮", type: "消耗品", quality: "白色", desc: "行军口粮，食用回复 10 点气力。" }
+      ]
+    };
+  }
 
   /* ---------- 降临地 (九州舆图 · 中国地图) ---------- */
   const LANDS = [
@@ -210,7 +267,7 @@
       天赋: [],
       阵营: { 名称: "无归属", 声望: 0, 立场: "中立" },
       地点: "废都长安",
-      日期: { 年: 1, 月: 1, 日: 1, 时辰: "酉时", 时: 18, 分: 30 },
+      日期: { 年: 1, 月: 1, 日: 1, 时辰: "子时", 时: 0, 分: 0 },
       天气: "阴云",
       编年史: []
     };
@@ -344,7 +401,7 @@
   };
 
   window.GAME_DATA = {
-    POWER_RANK, IDENTITIES, DIFFICULTIES, TALENTS, LANDS, ITEMS, GEAR_SLOTS, GEAR_GROUPS,
+    POWER_RANK, IDENTITIES, DIFFICULTIES, TALENTS, TALENT_QUALITY, factionRecruit, LANDS, ITEMS, GEAR_SLOTS, GEAR_GROUPS,
     QUALITY_ORDER, QUALITY_LABEL, QUALITY_COLOR, SKILLS, AURAS, QUESTS, MAP_NODES, NPCS, CHRONICLE_SEED,
     defaultStat, PROLOGUE, OPTION_SET_A, DEMO_RESPONSES,
     EXP, 经验百分比, grantExp, DROPS, DEMONS, EQUIP_TEMPLATE
